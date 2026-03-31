@@ -1,0 +1,110 @@
+### POST request to example server
+POST http://localhost:3001/evolucionClinica/insertarEvaluacion
+Content-Type: application/json
+
+{
+  "id_paciente": 1,
+  "id_ficha_clinica": 101,
+  "tipo_evaluacion": "Inicial",
+  "version_protocolo": "v1.0",
+  "estado": "Activo",
+  "fecha_evaluacion": "2023-10-04 14:30:00",
+  "profesional_id": 123,
+  "peso_kg": 70.5,
+  "talla_cm": 175,
+  "cintura_cm": 85,
+  "imc": 24.5,
+  "pa_sistolica": 120,
+  "pa_diastolica": 80,
+  "actividad_fisica": "Moderada",
+  "motivo_consulta": "Control de peso",
+  "medicamentos_actuales": "Paracetamol",
+  "alergias": "Penicilina",
+  "tratamientos_previos_obesidad":"Dieta balanceada",
+  "historia_familiar": "Padre con hipertensión",
+  "observaciones_clinicas": "Paciente presenta una dieta equilibrada y realiza ejercicio regularmente.",
+  "resultado_elegibilidad": "Elegible",
+  "justificacion_resultado": "Cumple con todos los criterios de elegibilidad.",
+  "score_total": 85,
+  "fecha_creacion": "2023-10-04 14:30:00"
+}
+
+
+### POST request to example server
+POST http://localhost:3001/evolucionClinica/seleccionar_evolucionEspecifica
+Content-Type: application/json
+
+{
+  "id_evaluacion":2
+}
+
+
+### GET request to example server
+GET http://localhost:3001/evolucionClinica/seleccionar_todas_evoluciones
+Content-Type: application/json
+
+
+### POST request to example server
+POST http://localhost:3001/evolucionClinica/eliminar_evolucionEspecifica_controller
+Content-Type: application/json
+
+{
+  "id_evaluacion":1
+}
+
+
+
+### POST request to example server
+POST http://localhost:3001/evolucionClinica/actualizar_evolucionEspecifica_controller
+Content-Type: application/json
+
+{
+    "id_paciente": 1,
+    "id_ficha_clinica": 2,
+    "tipo_evaluacion": "Ingreso",
+    "version_protocolo": "v1.0",
+    "estado": "Activo",
+    "fecha_evaluacion": "2023-10-04 14:30:00",
+    "profesional_id": 3,
+    "peso_kg": 75.5,
+    "talla_cm": 180,
+    "cintura_cm": 90,
+    "imc": 24.69,
+    "pa_sistolica": 120,
+    "pa_diastolica": 80,
+    "actividad_fisica": "Moderada",
+    "motivo_consulta": "Revisión periódica",
+    "medicamentos_actuales": "Ibuprofeno",
+    "alergias": "Penicilina",
+    "tratamientos_previos_obesidad": "Dieta equilibrada",
+    "historia_familiar": "Padre con hipertensión",
+    "observaciones_clinicas": "Paciente en buen estado general",
+    "resultado_elegibilidad": "Elegible",
+    "justificacion_resultado": "Cumple con los criterios de elegibilidad",
+    "score_total": 85,
+    "fecha_creacion": "2023-10-04 14:30:00",
+    "id_evaluacion": 2
+}
+
+
+### POST request to example server
+POST http://localhost:3001/evolucionClinica/eliminar_evolucionEspecifica_controller
+Content-Type: application/json
+
+{
+  "id_evaluacion":1
+}
+
+
+
+### POST request to example server
+POST http://localhost:3001/evolucionClinica/seleccionar_ultimaEvaluacion_paciente
+Content-Type: application/json
+
+{
+  "id_paciente":1
+}
+
+
+
+

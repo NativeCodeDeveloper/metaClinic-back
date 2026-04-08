@@ -1,0 +1,194 @@
+
+### 1a. Crear criterio - caso exitoso
+POST http://localhost:3001/criteriosClinicos/crear
+Content-Type: application/json
+
+{
+  "nombre": "Embarazo",
+  "descripcion": "Paciente en estado de gestacion",
+  "valor_tipo": "negativo",
+  "excluye_glp1": 1
+}
+
+### 1b. Crear criterio - sin nombre (debe retornar 400)
+POST http://localhost:3001/criteriosClinicos/crear
+Content-Type: application/json
+
+{
+  "descripcion": "Paciente en estado de gestacion",
+  "valor_tipo": "negativo",
+  "excluye_glp1": 1
+}
+
+### 1c. Crear criterio - sin descripcion (debe retornar 400)
+POST http://localhost:3001/criteriosClinicos/crear
+Content-Type: application/json
+
+{
+  "nombre": "Embarazo",
+  "valor_tipo": "negativo",
+  "excluye_glp1": 1
+}
+
+### 1d. Crear criterio - sin valor_tipo (debe retornar 400)
+POST http://localhost:3001/criteriosClinicos/crear
+Content-Type: application/json
+
+{
+  "nombre": "Embarazo",
+  "descripcion": "Paciente en estado de gestacion",
+  "excluye_glp1": 1
+}
+
+### 1e. Crear criterio - body vacio (debe retornar 400)
+POST http://localhost:3001/criteriosClinicos/crear
+Content-Type: application/json
+
+{}
+
+
+###############################################
+# 2. OBTENER TODOS LOS CRITERIOS ACTIVOS
+###############################################
+
+### 2a. Obtener todos activos - caso exitoso
+GET http://localhost:3001/criteriosClinicos/obtenerTodosActivos
+Content-Type: application/json
+
+
+###############################################
+# 3. OBTENER CRITERIO POR ID
+###############################################
+
+### 3a. Obtener por id - caso exitoso
+POST http://localhost:3001/criteriosClinicos/obtenerPorId
+Content-Type: application/json
+
+{
+  "id_criterio": 1
+}
+
+### 3b. Obtener por id - sin id_criterio (debe retornar 400)
+POST http://localhost:3001/criteriosClinicos/obtenerPorId
+Content-Type: application/json
+
+{}
+
+### 3c. Obtener por id - id inexistente (debe retornar 200 con array vacio)
+POST http://localhost:3001/criteriosClinicos/obtenerPorId
+Content-Type: application/json
+
+{
+  "id_criterio": 999999
+}
+
+
+###############################################
+# 4. ACTUALIZAR CRITERIO
+###############################################
+
+### 4a. Actualizar criterio - caso exitoso
+POST http://localhost:3001/criteriosClinicos/actualizarCriterio
+Content-Type: application/json
+
+{
+  "nombre": "Embarazo actualizado",
+  "descripcion": "Paciente en estado de gestacion - contraindicacion absoluta",
+  "valor_tipo": "negativo",
+  "excluye_glp1": 1,
+  "fecha_creacion": "2025-10-04 14:30:00",
+  "id_criterio": 1
+}
+
+### 4b. Actualizar criterio - sin id_criterio (debe retornar 400)
+POST http://localhost:3001/criteriosClinicos/actualizarCriterio
+Content-Type: application/json
+
+{
+  "nombre": "Embarazo actualizado",
+  "descripcion": "Descripcion actualizada",
+  "valor_tipo": "negativo",
+  "excluye_glp1": 1,
+  "fecha_creacion": "2025-10-04 14:30:00"
+}
+
+### 4c. Actualizar criterio - sin nombre (debe retornar 400)
+POST http://localhost:3001/criteriosClinicos/actualizarCriterio
+Content-Type: application/json
+
+{
+  "descripcion": "Descripcion actualizada",
+  "valor_tipo": "negativo",
+  "excluye_glp1": 1,
+  "fecha_creacion": "2025-10-04 14:30:00",
+  "id_criterio": 1
+}
+
+### 4d. Actualizar criterio - body vacio (debe retornar 400)
+POST http://localhost:3001/criteriosClinicos/actualizarCriterio
+Content-Type: application/json
+
+{}
+
+
+###############################################
+# 5. ELIMINAR CRITERIO (soft delete)
+###############################################
+
+### 5a. Eliminar criterio - caso exitoso
+POST http://localhost:3001/criteriosClinicos/eliminarCriterio
+Content-Type: application/json
+
+{
+  "id_criterio": 1
+}
+
+### 5b. Eliminar criterio - sin id_criterio (debe retornar 400)
+POST http://localhost:3001/criteriosClinicos/eliminarCriterio
+Content-Type: application/json
+
+{}
+
+### 5c. Eliminar criterio - id inexistente (debe retornar 200 con message false)
+POST http://localhost:3001/criteriosClinicos/eliminarCriterio
+Content-Type: application/json
+
+{
+  "id_criterio": 999999
+}
+
+
+###############################################
+# 6. OBTENER CRITERIOS EXCLUYENTES GLP1
+###############################################
+
+### 6a. Obtener excluyentes GLP1 - caso exitoso
+GET http://localhost:3001/criteriosClinicos/obtenerExcluyentesGLP1
+Content-Type: application/json
+
+
+###############################################
+# 7. OBTENER CRITERIOS POR VALOR TIPO
+###############################################
+
+### 7a. Obtener por valor_tipo - caso exitoso
+POST http://localhost:3001/criteriosClinicos/obtenercriterios_valor_tipo
+Content-Type: application/json
+
+{
+  "valor_tipo": "negativo"
+}
+
+### 7b. Obtener por valor_tipo - sin valor_tipo (debe retornar 400)
+POST http://localhost:3001/criteriosClinicos/obtenercriterios_valor_tipo
+Content-Type: application/json
+
+{}
+
+### 7c. Obtener por valor_tipo - tipo inexistente (debe retornar 200 con array vacio)
+POST http://localhost:3001/criteriosClinicos/obtenercriterios_valor_tipo
+Content-Type: application/json
+
+{
+  "valor_tipo": "tipo_que_no_existe"
+}

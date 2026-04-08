@@ -1,0 +1,175 @@
+### =============================================
+### EVALUACION CRITERIOS (tabla puente)
+### =============================================
+
+
+###############################################
+# 1. GUARDAR CRITERIOS DE UNA EVALUACION
+###############################################
+
+### 1a. Guardar criterios - caso exitoso
+POST http://localhost:3001/evaluacionCriterios/guardarCriteriosEvaluacion
+Content-Type: application/json
+
+{
+  "id_evaluacion_clinica": 1,
+  "arrayCriterios": [
+    { "id_criterio": 1, "activo": 1 },
+    { "id_criterio": 2, "activo": 1 },
+    { "id_criterio": 3, "activo": 0 }
+  ]
+}
+
+### 1b. Guardar criterios - sin id_evaluacion_clinica (debe retornar 400)
+POST http://localhost:3001/evaluacionCriterios/guardarCriteriosEvaluacion
+Content-Type: application/json
+
+{
+  "arrayCriterios": [
+    { "id_criterio": 1, "activo": 1 }
+  ]
+}
+
+### 1c. Guardar criterios - array vacio (debe retornar 400)
+POST http://localhost:3001/evaluacionCriterios/guardarCriteriosEvaluacion
+Content-Type: application/json
+
+{
+  "id_evaluacion_clinica": 1,
+  "arrayCriterios": []
+}
+
+### 1d. Guardar criterios - sin arrayCriterios (debe retornar 400/500)
+POST http://localhost:3001/evaluacionCriterios/guardarCriteriosEvaluacion
+Content-Type: application/json
+
+{
+  "id_evaluacion_clinica": 1
+}
+
+### 1e. Guardar criterios - body vacio (debe retornar 400/500)
+POST http://localhost:3001/evaluacionCriterios/guardarCriteriosEvaluacion
+Content-Type: application/json
+
+{}
+
+
+###############################################
+# 2. OBTENER CRITERIOS POR EVALUACION
+# NOTA: La ruta es GET pero el controller lee req.body.
+# Algunos clientes HTTP no envian body en GET.
+# Si falla, esta ruta deberia cambiarse a POST.
+###############################################
+
+### 2a. Obtener criterios por evaluacion - caso exitoso
+GET http://localhost:3001/evaluacionCriterios/obtenerCriteriosPorEvaluacion
+Content-Type: application/json
+
+{
+  "id_evaluacion_clinica": 1
+}
+
+### 2b. Obtener criterios por evaluacion - sin id (debe retornar 400)
+GET http://localhost:3001/evaluacionCriterios/obtenerCriteriosPorEvaluacion
+Content-Type: application/json
+
+{}
+
+
+###############################################
+# 3. ACTUALIZAR SWITCH ESPECIFICO
+###############################################
+
+### 3a. Actualizar switch - activar criterio
+POST http://localhost:3001/evaluacionCriterios/actualizarSwitchEspecifico
+Content-Type: application/json
+
+{
+  "activo": 1,
+  "id_evaluacion_criterios": 1
+}
+
+### 3b. Actualizar switch - desactivar criterio
+POST http://localhost:3001/evaluacionCriterios/actualizarSwitchEspecifico
+Content-Type: application/json
+
+{
+  "activo": "0",
+  "id_evaluacion_criterios": 1
+}
+
+### 3c. Actualizar switch - sin activo (debe retornar 400)
+POST http://localhost:3001/evaluacionCriterios/actualizarSwitchEspecifico
+Content-Type: application/json
+
+{
+  "id_evaluacion_criterios": 1
+}
+
+### 3d. Actualizar switch - sin id_evaluacion_criterios (debe retornar 400)
+POST http://localhost:3001/evaluacionCriterios/actualizarSwitchEspecifico
+Content-Type: application/json
+
+{
+  "activo": 1
+}
+
+### 3e. Actualizar switch - body vacio (debe retornar 400)
+POST http://localhost:3001/evaluacionCriterios/actualizarSwitchEspecifico
+Content-Type: application/json
+
+{}
+
+
+###############################################
+# 4. ELIMINAR EVALUACION CRITERIO
+###############################################
+
+### 4a. Eliminar evaluacion criterio - caso exitoso
+POST http://localhost:3001/evaluacionCriterios/eliminarEvaluacionCriterio
+Content-Type: application/json
+
+{
+  "id_evaluacion_criterios": 1
+}
+
+### 4b. Eliminar evaluacion criterio - sin id (debe retornar 400)
+POST http://localhost:3001/evaluacionCriterios/eliminarEvaluacionCriterio
+Content-Type: application/json
+
+{}
+
+### 4c. Eliminar evaluacion criterio - id inexistente (debe retornar 200 con message false)
+POST http://localhost:3001/evaluacionCriterios/eliminarEvaluacionCriterio
+Content-Type: application/json
+
+{
+  "id_evaluacion_criterios": 999999
+}
+
+
+###############################################
+# 5. OBTENER CRITERIOS DE EVALUACION ESPECIFICA
+###############################################
+
+### 5a. Obtener criterios evaluacion especifica - caso exitoso
+POST http://localhost:3001/evaluacionCriterios/obtener_criterios_evaluacion_especifica
+Content-Type: application/json
+
+{
+  "id_evaluacion_criterios": 1
+}
+
+### 5b. Obtener criterios evaluacion especifica - sin id (debe retornar 400)
+POST http://localhost:3001/evaluacionCriterios/obtener_criterios_evaluacion_especifica
+Content-Type: application/json
+
+{}
+
+### 5c. Obtener criterios evaluacion especifica - id inexistente (debe retornar 200 con array vacio)
+POST http://localhost:3001/evaluacionCriterios/obtener_criterios_evaluacion_especifica
+Content-Type: application/json
+
+{
+  "id_evaluacion_criterios": 999999
+}

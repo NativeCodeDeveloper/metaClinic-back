@@ -82,8 +82,6 @@ export default class EvolucionClinicaController {
     }
 
 
-
-
     //SELECCIONAR EVOLUCION ESPECIFICA POR SU ID
     static async seleccionar_evolucionEspecifica_controller(req, res) {
         try{
@@ -110,6 +108,7 @@ export default class EvolucionClinicaController {
             return res.status(500).send({message: `serverError + error: ${error}`});
         }
     }
+
 
 
     //SELECCIONAR TODAS LAS EVOLUCIONES POR EL ID DEL PACIENTE AL QUE PERTENECEN
@@ -264,6 +263,36 @@ export default class EvolucionClinicaController {
             }
             const EvolucionClincaClass = new EvolucionClinica();
             const resultadoModel = await EvolucionClincaClass.seleccionar_ultimaEvaluacion_paciente(id_paciente);
+
+            if(Array.isArray(resultadoModel.affectedRows) && resultadoModel.length > 0){
+                return res.status(200).send(resultadoModel)
+            }else{
+                return res.status(200).send([])
+            }
+        }catch(error){
+            return res.status(500).send({message: `serverError + error: ${error}`});
+        }
+    }
+
+
+
+
+    //ELIMINAR EVOLUCION eliminar_evolucionEspecifica
+    static async seleccionar_todas_evaluaciones_paciente_especifico(req, res) {
+        try{
+            const {
+                id_paciente
+            } = req.body;
+
+            console.log(req.body);
+
+            if(!id_paciente){
+                return res.status(400).send({
+                    message: 'sindata',
+                })
+            }
+            const EvolucionClincaClass = new EvolucionClinica();
+            const resultadoModel = await EvolucionClincaClass.seleccionar_todas_evaluaciones_paciente_especifico(id_paciente);
 
             if(Array.isArray(resultadoModel.affectedRows) && resultadoModel.length > 0){
                 return res.status(200).send(resultadoModel)

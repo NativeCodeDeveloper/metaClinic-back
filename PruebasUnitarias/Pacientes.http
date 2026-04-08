@@ -1,0 +1,279 @@
+### =============================================
+### PACIENTES
+### Base URL: /pacientes
+### =============================================
+
+
+###############################################
+# 1. SELECCIONAR TODOS LOS PACIENTES
+###############################################
+
+### 1a. Obtener todos los pacientes - caso exitoso
+GET http://localhost:3001/pacientes/
+Content-Type: application/json
+
+
+###############################################
+# 2. SELECCIONAR PACIENTE ESPECIFICO POR ID
+###############################################
+
+### 2a. Seleccionar paciente especifico - caso exitoso
+POST http://localhost:3001/pacientes/pacientesEspecifico
+Content-Type: application/json
+
+{
+  "id_paciente": 1
+}
+
+### 2b. Seleccionar paciente especifico - sin id_paciente (debe retornar 400)
+POST http://localhost:3001/pacientes/pacientesEspecifico
+Content-Type: application/json
+
+{}
+
+### 2c. Seleccionar paciente especifico - id inexistente
+POST http://localhost:3001/pacientes/pacientesEspecifico
+Content-Type: application/json
+
+{
+  "id_paciente": 999999
+}
+
+
+###############################################
+# 3. INSERTAR PACIENTE NUEVO
+# Campos obligatorios: nombre, apellido, rut, nacimiento,
+# sexo, prevision_id, telefono, correo, direccion, pais
+###############################################
+
+### 3a. Insertar paciente - caso exitoso
+POST http://localhost:3001/pacientes/pacientesInsercion
+Content-Type: application/json
+
+{
+  "nombre": "Juan",
+  "apellido": "Perez",
+  "rut": "12345678-9",
+  "nacimiento": "1990-05-15",
+  "sexo": "M",
+  "prevision_id": 1,
+  "telefono": "+56912345678",
+  "correo": "juan.perez@example.com",
+  "direccion": "Av. Siempre Viva 742",
+  "pais": "Chile"
+}
+
+### 3b. Insertar paciente - sin nombre (debe retornar 400)
+POST http://localhost:3001/pacientes/pacientesInsercion
+Content-Type: application/json
+
+{
+  "apellido": "Perez",
+  "rut": "12345678-9",
+  "nacimiento": "1990-05-15",
+  "sexo": "M",
+  "prevision_id": 1,
+  "telefono": "+56912345678",
+  "correo": "juan.perez@example.com",
+  "direccion": "Av. Siempre Viva 742",
+  "pais": "Chile"
+}
+
+### 3c. Insertar paciente - sin rut (debe retornar 400)
+POST http://localhost:3001/pacientes/pacientesInsercion
+Content-Type: application/json
+
+{
+  "nombre": "Juan",
+  "apellido": "Perez",
+  "nacimiento": "1990-05-15",
+  "sexo": "M",
+  "prevision_id": 1,
+  "telefono": "+56912345678",
+  "correo": "juan.perez@example.com",
+  "direccion": "Av. Siempre Viva 742",
+  "pais": "Chile"
+}
+
+### 3d. Insertar paciente - sin prevision_id (debe retornar 400)
+POST http://localhost:3001/pacientes/pacientesInsercion
+Content-Type: application/json
+
+{
+  "nombre": "Juan",
+  "apellido": "Perez",
+  "rut": "12345678-9",
+  "nacimiento": "1990-05-15",
+  "sexo": "M",
+  "telefono": "+56912345678",
+  "correo": "juan.perez@example.com",
+  "direccion": "Av. Siempre Viva 742",
+  "pais": "Chile"
+}
+
+### 3e. Insertar paciente - body vacio (debe retornar 400)
+POST http://localhost:3001/pacientes/pacientesInsercion
+Content-Type: application/json
+
+{}
+
+
+###############################################
+# 4. ACTUALIZAR PACIENTE
+# Mismos campos que insercion + id_paciente
+###############################################
+
+### 4a. Actualizar paciente - caso exitoso
+POST http://localhost:3001/pacientes/pacientesActualizar
+Content-Type: application/json
+
+{
+  "nombre": "Juan Carlos",
+  "apellido": "Perez Gonzalez",
+  "rut": "12345678-9",
+  "nacimiento": "1990-05-15",
+  "sexo": "M",
+  "prevision_id": 2,
+  "telefono": "+56987654321",
+  "correo": "juancarlos.perez@example.com",
+  "direccion": "Nueva direccion 123",
+  "pais": "Chile",
+  "id_paciente": 1
+}
+
+### 4b. Actualizar paciente - sin id_paciente (debe retornar 400)
+POST http://localhost:3001/pacientes/pacientesActualizar
+Content-Type: application/json
+
+{
+  "nombre": "Juan Carlos",
+  "apellido": "Perez Gonzalez",
+  "rut": "12345678-9",
+  "nacimiento": "1990-05-15",
+  "sexo": "M",
+  "prevision_id": 2,
+  "telefono": "+56987654321",
+  "correo": "juancarlos.perez@example.com",
+  "direccion": "Nueva direccion 123",
+  "pais": "Chile"
+}
+
+### 4c. Actualizar paciente - sin nombre (debe retornar 400)
+POST http://localhost:3001/pacientes/pacientesActualizar
+Content-Type: application/json
+
+{
+  "apellido": "Perez",
+  "rut": "12345678-9",
+  "nacimiento": "1990-05-15",
+  "sexo": "M",
+  "prevision_id": 1,
+  "telefono": "+56912345678",
+  "correo": "juan.perez@example.com",
+  "direccion": "Av. Siempre Viva 742",
+  "pais": "Chile",
+  "id_paciente": 1
+}
+
+### 4d. Actualizar paciente - body vacio (debe retornar 400)
+POST http://localhost:3001/pacientes/pacientesActualizar
+Content-Type: application/json
+
+{}
+
+
+###############################################
+# 5. ELIMINAR PACIENTE
+###############################################
+
+### 5a. Eliminar paciente - caso exitoso
+POST http://localhost:3001/pacientes/eliminarPaciente
+Content-Type: application/json
+
+{
+  "id_paciente": 1
+}
+
+### 5b. Eliminar paciente - sin id_paciente (debe retornar 400)
+POST http://localhost:3001/pacientes/eliminarPaciente
+Content-Type: application/json
+
+{}
+
+### 5c. Eliminar paciente - id inexistente (debe retornar 200 con message false)
+POST http://localhost:3001/pacientes/eliminarPaciente
+Content-Type: application/json
+
+{
+  "id_paciente": 999999
+}
+
+
+###############################################
+# 6. BUSCAR POR COINCIDENCIA DE RUT
+###############################################
+
+### 6a. Buscar por RUT - caso exitoso
+POST http://localhost:3001/pacientes/contieneRut
+Content-Type: application/json
+
+{
+  "rut": "12345678"
+}
+
+### 6b. Buscar por RUT - RUT parcial
+POST http://localhost:3001/pacientes/contieneRut
+Content-Type: application/json
+
+{
+  "rut": "123"
+}
+
+### 6c. Buscar por RUT - sin rut (debe retornar 400)
+POST http://localhost:3001/pacientes/contieneRut
+Content-Type: application/json
+
+{}
+
+### 6d. Buscar por RUT - RUT inexistente
+POST http://localhost:3001/pacientes/contieneRut
+Content-Type: application/json
+
+{
+  "rut": "00000000-0"
+}
+
+
+###############################################
+# 7. BUSCAR POR COINCIDENCIA DE NOMBRE
+###############################################
+
+### 7a. Buscar por nombre - caso exitoso
+POST http://localhost:3001/pacientes/contieneNombre
+Content-Type: application/json
+
+{
+  "nombre": "Juan"
+}
+
+### 7b. Buscar por nombre - nombre parcial
+POST http://localhost:3001/pacientes/contieneNombre
+Content-Type: application/json
+
+{
+  "nombre": "Ju"
+}
+
+### 7c. Buscar por nombre - sin nombre (debe retornar 400)
+POST http://localhost:3001/pacientes/contieneNombre
+Content-Type: application/json
+
+{}
+
+### 7d. Buscar por nombre - nombre inexistente
+POST http://localhost:3001/pacientes/contieneNombre
+Content-Type: application/json
+
+{
+  "nombre": "NombreQueNoExiste"
+}

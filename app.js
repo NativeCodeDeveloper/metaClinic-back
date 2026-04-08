@@ -29,6 +29,9 @@ import { notificacionAgendamiento } from "./services/notificacionWhatsApp.js";
 import bloqueoAgendaRoutes from "./view/bloqueoAgendaRoutes.js";
 import publicacionesTituloDescripcionRoutes from "./view/publicacionesTtiloDescripcionRoutes.js";
 import evolucionClinicaRoutes from "./view/evolucionClinicaRoutes.js";
+import criteriosClinicosRoutes from "./view/criteriosClinicosRoutes.js";
+import evaluacionCriteriosRoutes from "./view/evaluacionCriteriosRoutes.js";
+
 
 
 
@@ -72,7 +75,9 @@ app.use("/publicaciones", publicacionesRoutes);
 app.use('/contacto', contactoRouter );
 app.use("/publicacionesTituloDetalle", publicacionesTituloDescripcionRoutes);
 app.use('/notificacion', notificacionAgendamientoRoutes);
-app.use('/evolucionClinica', evolucionClinicaRoutes)
+app.use('/criteriosClinicos', criteriosClinicosRoutes)
+app.use("/evolucionClinica", evolucionClinicaRoutes);
+app.use("/evaluacionCriterios", evaluacionCriteriosRoutes);
 
 // Ruta para ejecutar recordatorios manualmente (protegido con TEST_API_KEY)
 app.get('/recordatorios/ejecutar', async (req, res) => {

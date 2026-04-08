@@ -1,4 +1,8 @@
-### POST request to example server
+###############################################
+# 1. INSERTAR EVALUACION CLINICA
+###############################################
+
+### 1a. Insertar evaluacion - caso exitoso
 POST http://localhost:3001/evolucionClinica/insertarEvaluacion
 Content-Type: application/json
 
@@ -8,103 +12,225 @@ Content-Type: application/json
   "tipo_evaluacion": "Inicial",
   "version_protocolo": "v1.0",
   "estado": "Activo",
-  "fecha_evaluacion": "2023-10-04 14:30:00",
+  "fecha_evaluacion": "2025-10-04 14:30:00",
   "profesional_id": 123,
   "peso_kg": 70.5,
   "talla_cm": 175,
   "cintura_cm": 85,
-  "imc": 24.5,
+  "imc": 23.02,
   "pa_sistolica": 120,
   "pa_diastolica": 80,
   "actividad_fisica": "Moderada",
   "motivo_consulta": "Control de peso",
   "medicamentos_actuales": "Paracetamol",
   "alergias": "Penicilina",
-  "tratamientos_previos_obesidad":"Dieta balanceada",
-  "historia_familiar": "Padre con hipertensión",
+  "tratamientos_previos_obesidad": "Dieta balanceada",
+  "historia_familiar": "Padre con hipertension",
   "observaciones_clinicas": "Paciente presenta una dieta equilibrada y realiza ejercicio regularmente.",
   "resultado_elegibilidad": "Elegible",
   "justificacion_resultado": "Cumple con todos los criterios de elegibilidad.",
   "score_total": 85,
-  "fecha_creacion": "2023-10-04 14:30:00"
+  "fecha_creacion": "2025-10-04 14:30:00"
 }
 
+### 1b. Insertar evaluacion - sin id_paciente (debe retornar 400)
+POST http://localhost:3001/evolucionClinica/insertarEvaluacion
+Content-Type: application/json
 
-### POST request to example server
+{
+  "id_ficha_clinica": 101,
+  "tipo_evaluacion": "Inicial",
+  "version_protocolo": "v1.0",
+  "estado": "Activo",
+  "fecha_evaluacion": "2025-10-04 14:30:00",
+  "profesional_id": 123,
+  "peso_kg": 70.5,
+  "talla_cm": 175,
+  "cintura_cm": 85,
+  "imc": 23.02,
+  "pa_sistolica": 120,
+  "pa_diastolica": 80,
+  "actividad_fisica": "Moderada",
+  "motivo_consulta": "Control de peso",
+  "medicamentos_actuales": "Paracetamol",
+  "alergias": "Penicilina",
+  "tratamientos_previos_obesidad": "Dieta balanceada",
+  "historia_familiar": "Padre con hipertension",
+  "observaciones_clinicas": "Observaciones de prueba",
+  "resultado_elegibilidad": "Elegible",
+  "justificacion_resultado": "Justificacion de prueba",
+  "score_total": 85,
+  "fecha_creacion": "2025-10-04 14:30:00"
+}
+
+### 1c. Insertar evaluacion - body vacio (debe retornar 400)
+POST http://localhost:3001/evolucionClinica/insertarEvaluacion
+Content-Type: application/json
+
+{}
+
+
+###############################################
+# 2. SELECCIONAR EVALUACION ESPECIFICA POR ID
+###############################################
+
+### 2a. Seleccionar evaluacion especifica - caso exitoso
 POST http://localhost:3001/evolucionClinica/seleccionar_evolucionEspecifica
 Content-Type: application/json
 
 {
-  "id_evaluacion":2
+  "id_evaluacion": 3
+}
+
+### 2b. Seleccionar evaluacion especifica - sin id_evaluacion (debe retornar 400)
+POST http://localhost:3001/evolucionClinica/seleccionar_evolucionEspecifica
+Content-Type: application/json
+
+{}
+
+### 2c. Seleccionar evaluacion especifica - id inexistente (debe retornar 200 con array vacio)
+POST http://localhost:3001/evolucionClinica/seleccionar_evolucionEspecifica
+Content-Type: application/json
+
+{
+  "id_evaluacion": 999999
 }
 
 
-### GET request to example server
+###############################################
+# 3. SELECCIONAR TODAS LAS EVALUACIONES
+###############################################
+
+### 3a. Seleccionar todas las evaluaciones - caso exitoso
 GET http://localhost:3001/evolucionClinica/seleccionar_todas_evoluciones
 Content-Type: application/json
 
 
-### POST request to example server
+###############################################
+# 4. ELIMINAR EVALUACION (soft delete)
+###############################################
+
+### 4a. Eliminar evaluacion especifica - caso exitoso
 POST http://localhost:3001/evolucionClinica/eliminar_evolucionEspecifica_controller
 Content-Type: application/json
 
 {
-  "id_evaluacion":1
+  "id_evaluacion": 1
+}
+
+### 4b. Eliminar evaluacion - sin id_evaluacion (debe retornar 400)
+POST http://localhost:3001/evolucionClinica/eliminar_evolucionEspecifica_controller
+Content-Type: application/json
+
+{}
+
+### 4c. Eliminar evaluacion - id inexistente (debe retornar 200 con message false)
+POST http://localhost:3001/evolucionClinica/eliminar_evolucionEspecifica_controller
+Content-Type: application/json
+
+{
+  "id_evaluacion": 999999
 }
 
 
+###############################################
+# 5. ACTUALIZAR EVALUACION ESPECIFICA
+###############################################
 
-### POST request to example server
+### 5a. Actualizar evaluacion - caso exitoso
 POST http://localhost:3001/evolucionClinica/actualizar_evolucionEspecifica_controller
 Content-Type: application/json
 
 {
-    "id_paciente": 1,
-    "id_ficha_clinica": 2,
-    "tipo_evaluacion": "Ingreso",
-    "version_protocolo": "v1.0",
-    "estado": "Activo",
-    "fecha_evaluacion": "2023-10-04 14:30:00",
-    "profesional_id": 3,
-    "peso_kg": 75.5,
-    "talla_cm": 180,
-    "cintura_cm": 90,
-    "imc": 24.69,
-    "pa_sistolica": 120,
-    "pa_diastolica": 80,
-    "actividad_fisica": "Moderada",
-    "motivo_consulta": "Revisión periódica",
-    "medicamentos_actuales": "Ibuprofeno",
-    "alergias": "Penicilina",
-    "tratamientos_previos_obesidad": "Dieta equilibrada",
-    "historia_familiar": "Padre con hipertensión",
-    "observaciones_clinicas": "Paciente en buen estado general",
-    "resultado_elegibilidad": "Elegible",
-    "justificacion_resultado": "Cumple con los criterios de elegibilidad",
-    "score_total": 85,
-    "fecha_creacion": "2023-10-04 14:30:00",
-    "id_evaluacion": 2
+  "id_paciente": 1,
+  "id_ficha_clinica": 101,
+  "tipo_evaluacion": "Seguimiento",
+  "version_protocolo": "v2.0",
+  "estado": "Activo",
+  "fecha_evaluacion": "2025-11-15 10:00:00",
+  "profesional_id": 123,
+  "peso_kg": 68.0,
+  "talla_cm": 175,
+  "cintura_cm": 82,
+  "imc": 22.2,
+  "pa_sistolica": 118,
+  "pa_diastolica": 76,
+  "actividad_fisica": "Alta",
+  "motivo_consulta": "Control mensual",
+  "medicamentos_actuales": "Ninguno",
+  "alergias": "Penicilina",
+  "tratamientos_previos_obesidad": "Dieta balanceada + ejercicio",
+  "historia_familiar": "Padre con hipertension",
+  "observaciones_clinicas": "Paciente muestra mejora en peso e IMC",
+  "resultado_elegibilidad": "Elegible",
+  "justificacion_resultado": "Mantiene criterios de elegibilidad",
+  "score_total": 90,
+  "fecha_creacion": "2025-10-04 14:30:00",
+  "id_evaluacion": 1
 }
 
-
-### POST request to example server
-POST http://localhost:3001/evolucionClinica/eliminar_evolucionEspecifica_controller
+### 5b. Actualizar evaluacion - sin id_evaluacion (debe retornar 400)
+POST http://localhost:3001/evolucionClinica/actualizar_evolucionEspecifica_controller
 Content-Type: application/json
 
 {
-  "id_evaluacion":1
+  "id_paciente": 1,
+  "id_ficha_clinica": 101,
+  "tipo_evaluacion": "Seguimiento",
+  "version_protocolo": "v2.0",
+  "estado": "Activo"
 }
 
 
+###############################################
+# 6. SELECCIONAR ULTIMA EVALUACION DE PACIENTE
+###############################################
 
-### POST request to example server
+### 6a. Ultima evaluacion del paciente - caso exitoso
 POST http://localhost:3001/evolucionClinica/seleccionar_ultimaEvaluacion_paciente
 Content-Type: application/json
 
 {
-  "id_paciente":1
+  "id_paciente": 1
+}
+
+### 6b. Ultima evaluacion - sin id_paciente (debe retornar 400)
+POST http://localhost:3001/evolucionClinica/seleccionar_ultimaEvaluacion_paciente
+Content-Type: application/json
+
+{}
+
+### 6c. Ultima evaluacion - paciente sin evaluaciones (debe retornar 200 con array vacio)
+POST http://localhost:3001/evolucionClinica/seleccionar_ultimaEvaluacion_paciente
+Content-Type: application/json
+
+{
+  "id_paciente": 999999
 }
 
 
+###############################################
+# 7. SELECCIONAR TODAS LAS EVALUACIONES DE UN PACIENTE ESPECIFICO
+###############################################
 
+### 7a. Todas las evaluaciones de un paciente - caso exitoso
+POST http://localhost:3001/evolucionClinica/seleccionar_todas_evaluaciones_paciente_especifico
+Content-Type: application/json
 
+{
+  "id_paciente": 1
+}
+
+### 7b. Evaluaciones de paciente - sin id_paciente (debe retornar 400)
+POST http://localhost:3001/evolucionClinica/seleccionar_todas_evaluaciones_paciente_especifico
+Content-Type: application/json
+
+{}
+
+### 7c. Evaluaciones de paciente inexistente (debe retornar 200 con array vacio)
+POST http://localhost:3001/evolucionClinica/seleccionar_todas_evaluaciones_paciente_especifico
+Content-Type: application/json
+
+{
+  "id_paciente": 999999
+}

@@ -31,6 +31,7 @@ import publicacionesTituloDescripcionRoutes from "./view/publicacionesTtiloDescr
 import evolucionClinicaRoutes from "./view/evolucionClinicaRoutes.js";
 import criteriosClinicosRoutes from "./view/criteriosClinicosRoutes.js";
 import evaluacionCriteriosRoutes from "./view/evaluacionCriteriosRoutes.js";
+import examenesRoutes from "./view/examenesClinicosRoutes.js";
 
 
 
@@ -77,7 +78,8 @@ app.use("/publicacionesTituloDetalle", publicacionesTituloDescripcionRoutes);
 app.use('/notificacion', notificacionAgendamientoRoutes);
 app.use('/criteriosClinicos', criteriosClinicosRoutes)
 app.use("/evolucionClinica", evolucionClinicaRoutes);
-app.use("/evaluacionCriterios", evaluacionCriteriosRoutes);
+app.use("/evaluacionCriterios", evaluacionCriteriosRoutes);examenesRoutes
+app.use("/examenes", examenesRoutes);
 
 // Ruta para ejecutar recordatorios manualmente (protegido con TEST_API_KEY)
 app.get('/recordatorios/ejecutar', async (req, res) => {

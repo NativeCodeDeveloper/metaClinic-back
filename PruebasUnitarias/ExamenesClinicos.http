@@ -1,0 +1,39 @@
+### POST para insertar un nuevo Examen
+POST http://localhost:3001/examenes/insertarExamen
+Content-Type: application/json
+
+{
+    "nombre_examen": "Hemograma Completo",
+    "descripcion_examen": "Análisis de células sanguíneas",
+    "valor_examen": 3500
+}
+
+### POST para actualizar un Examen
+POST http://localhost:3001/examenes/actualizarExamen
+Content-Type: application/json
+
+{
+    "nombre_examen": "Hemograma Completo",
+    "descripcion_examen": "Análisis detallado",
+    "valor_examen": 40000,
+    "id_examen": 1
+}
+
+### POST para seleccionar un Examen por ID
+POST http://localhost:3001/examenes/seleccionarExamen
+Content-Type: application/json
+
+{
+    "id_examen": 1
+}
+
+### POST para eliminar un Examen
+POST http://localhost:3001/examenes/eliminarExamen
+Content-Type: application/json
+
+{
+    "id_examen": 1
+}
+
+### GET para seleccionar todos los Exámenes
+GET http://localhost:3001/examenes/seleccionarTodosExamenes

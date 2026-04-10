@@ -1,0 +1,57 @@
+### GET request to example server
+GET http://localhost:3001/recetas/seleccionarTodasLasRecetas
+
+### POST request to example server
+POST http://localhost:3001/recetas/insertarRecetaPaciente
+Content-Type: application/json
+
+{
+  "nombre_paciente": "Juan",
+  "apellido_paciente": "Perez",
+  "rut_paciente": "12.345.678-9",
+  "id_paciente": 1,
+  "id_profesional": 1,
+  "profesional_responsable": "Dr. Smith",
+  "descripcion_receta": "Rifampicina 2090"
+}
+
+### POST request to example server
+POST http://localhost:3001/recetas/actualizarRecetaPaciente
+Content-Type: application/json
+
+{
+  "nombre_paciente": "Juan",
+  "apellido_paciente": "Perez",
+  "rut_paciente": "12.345.678-9",
+  "id_paciente": 1,
+  "id_profesional": 1,
+  "profesional_responsable": "Dr. Smith",
+  "descripcion_receta": "Paracetamol 500mg - Actualizado",
+  "id_receta": 1
+}
+
+
+### POST request to example㙋
+POST http://localhost:3001/recetas/seleccionarRecetaPaciente
+Content-Type: application/json
+
+{
+  "id_receta": 1
+}
+
+### POST request to example server
+POST http://localhost:3001/recetas/eliminarRecetaPaciente
+Content-Type: application/json
+
+{
+  "id_receta": 1
+}
+
+
+### POST request to example server
+POST http://localhost:3001/recetas/seleccionar_todas_Recetas_especificas_pacientes
+Content-Type: application/json
+
+{
+  "id_paciente": 1
+}

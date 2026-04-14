@@ -53,5 +53,16 @@ POST http://localhost:3001/recetas/seleccionar_todas_Recetas_especificas_pacient
 Content-Type: application/json
 
 {
-  "id_paciente": 1
+  "id_paciente": 150
+}
+
+
+
+
+### POST request to example server
+POST http://localhost:3001/recetas/seleccionar_por_profesional_id
+Content-Type: application/json
+
+{
+  "id_profesional": 15
 }

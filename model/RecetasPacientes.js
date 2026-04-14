@@ -151,4 +151,33 @@ export default class RecetasPacientes {
 
 
 
+    //FUNCION PARA SELECCIONAR POR ID UNA RECETA
+    async seleccionar_por_profesional_id(id_profesional,id_paciente ) {
+        try {
+            const conexion = DataBase.getInstance();
+            const query = `
+            SELECT 
+            recetas_pacientes.*,
+            pacienteDatos.id_paciente AS id_paciente_tabla_pacientes
+            
+           FROM recetas_pacientes
+           INNER JOIN pacienteDatos ON 
+           pacienteDatos.id_paciente = recetas_pacientes.id_paciente
+           
+           WHERE
+           recetas_pacientes.id_profesional = ? AND
+           recetas_pacientes.id_paciente = ? AND
+           estado_receta <> 0 
+            `;
+            const params = [id_profesional];
+            const resultado = await conexion.ejecutarQuery(query, params);
+            return resultado;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+
+
+
 }

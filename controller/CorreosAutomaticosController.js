@@ -19,11 +19,19 @@ export default class CorreosAutomaticosController {
 
             const apiKey = process.env.BREVO_API_KEY;
             const NOMBRE_EMPRESA = process.env.NOMBRE_EMPRESA;
+            const CORREO_REMITENTE = process.env.CORREO_REMITENTE || "contacto@nativecode.cl";
 
             if (!apiKey) {
                 console.error("Falta BREVO_API_KEY en .env");
                 return res.status(500).json({ mensaje: 'sindato' });
             }
+
+            const mensajeHtml = mensaje
+                .split("\n")
+                .map((linea) => linea.trim())
+                .filter(Boolean)
+                .map((linea) => `<p style="margin:0 0 12px; line-height:1.7; color:#334155; font-size:15px;">${linea}</p>`)
+                .join("");
 
             const response = await fetch("https://api.brevo.com/v3/smtp/email", {
                 method: "POST",
@@ -34,7 +42,7 @@ export default class CorreosAutomaticosController {
                 body: JSON.stringify({
                     sender: {
                         name: NOMBRE_EMPRESA,
-                        email: "contacto@nativecode.cl",
+                        email: CORREO_REMITENTE,
                     },
                     to: [
                         {
@@ -43,19 +51,56 @@ export default class CorreosAutomaticosController {
                         },
                     ],
                     replyTo: {
-                        email: "contacto@nativecode.cl",
+                        email: CORREO_REMITENTE,
                         name: NOMBRE_EMPRESA,
                     },
                     subject: asunto,
                     htmlContent: `
-                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                            <h2 style="color: #0369a1;">${NOMBRE_EMPRESA}</h2>
-                            <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin-top: 20px;">
-                                ${mensaje.replace(/\n/g, '<br/>')}
+                        <div style="margin:0; padding:32px 0; background-color:#f8fafc; font-family:Arial, Helvetica, sans-serif;">
+                            <div style="max-width:680px; margin:0 auto; background:#ffffff; border:1px solid #e2e8f0; border-radius:18px; overflow:hidden; box-shadow:0 18px 50px rgba(15,23,42,0.08);">
+                                <div style="padding:26px 32px; background:linear-gradient(135deg,#0f172a 0%, #1e293b 100%);">
+                                    <div style="font-size:12px; letter-spacing:0.22em; text-transform:uppercase; color:#93c5fd; font-weight:700; margin-bottom:10px;">
+                                        Comunicación Clínica
+                                    </div>
+                                    <h1 style="margin:0; color:#ffffff; font-size:24px; line-height:1.25; font-weight:700;">
+                                        ${NOMBRE_EMPRESA}
+                                    </h1>
+                                    <p style="margin:10px 0 0; color:#cbd5e1; font-size:14px; line-height:1.6;">
+                                        Información oficial enviada desde nuestro equipo de atención.
+                                    </p>
+                                </div>
+
+                                <div style="padding:28px 32px 12px;">
+                                    <div style="display:inline-block; padding:8px 14px; border-radius:999px; background:#eff6ff; color:#1d4ed8; font-size:12px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;">
+                                        ${asunto}
+                                    </div>
+                                </div>
+
+                                <div style="padding:0 32px 12px;">
+                                    <div style="border:1px solid #e2e8f0; border-radius:16px; background:#f8fafc; padding:22px 22px 10px;">
+                                        ${mensajeHtml}
+                                    </div>
+                                </div>
+
+                                <div style="padding:8px 32px 0;">
+                                    <div style="height:1px; background:#e2e8f0;"></div>
+                                </div>
+
+                                <div style="padding:22px 32px 30px;">
+                                    <p style="margin:0 0 10px; color:#0f172a; font-size:14px; font-weight:700;">
+                                        Equipo clínico ${NOMBRE_EMPRESA}
+                                    </p>
+                                    <p style="margin:0; color:#64748b; font-size:13px; line-height:1.7;">
+                                        Este correo corresponde a una comunicación formal de atención enviada por nuestros canales institucionales.
+                                    </p>
+                                </div>
+
+                                <div style="padding:14px 32px; background:#f8fafc; border-top:1px solid #e2e8f0;">
+                                    <p style="margin:0; color:#94a3b8; font-size:12px; line-height:1.6;">
+                                        ${NOMBRE_EMPRESA} · Mensajería institucional de pacientes
+                                    </p>
+                                </div>
                             </div>
-                            <p style="margin-top: 20px; color: #64748b; font-size: 14px;">
-                                Si tienes alguna consulta adicional, no dudes en contactarnos en nuestros canales regulares.
-                            </p>
                         </div>
                     `,
                 }),

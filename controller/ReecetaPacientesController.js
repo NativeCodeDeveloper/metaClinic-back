@@ -130,4 +130,35 @@ export default class ReecetaPacientesController {
             res.status(500).json({message: "serverError"});
         }
     }
+
+
+
+
+
+
+
+
+
+    //SELECCIONAR RECETAS POR ID ESPECIFICO DE PROFESIONAL ASIGANDO
+    static async seleccionar_por_profesional_id(req, res) {
+        try {
+            const {id_profesional, id_paciente} = req.body;
+            if (!id_profesional, id_paciente) {
+                return res.status(400).json({message: "sindata"});
+            }
+            const recetaClass = new RecetasPacientes();
+            const resultado = await recetaClass.seleccionar_por_profesional_id(id_profesional, id_paciente);
+
+            if (Array.isArray(resultado) && (resultado.length > 0)) {
+                res.status(200).json(resultado);
+            } else {
+                res.status(200).json([]);
+            }
+        } catch (error) {
+            res.status(500).json({message: "serverError"});
+        }
+    }
+
+
+
 }

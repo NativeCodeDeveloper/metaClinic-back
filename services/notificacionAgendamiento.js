@@ -135,7 +135,17 @@ export default class NotificacionAgendamiento {
             return;
         }
 
-        console.log("[MAIL] Enviado OK a:", to, "| id_reserva:", id_reserva);
+        const data = await resp.json().catch(() => null);
+        const messageId = data?.messageId || data?.messageIds?.[0] || null;
+        console.log(
+            "[MAIL] Solicitud aceptada por Brevo a:",
+            to,
+            "| id_reserva:",
+            id_reserva,
+            "| from:",
+            fromEmail,
+            messageId ? `| messageId: ${messageId}` : ""
+        );
     }
 
     // Envía notificación al equipo cuando un paciente confirma, cancela o agenda una cita
@@ -256,6 +266,15 @@ export default class NotificacionAgendamiento {
             return;
         }
 
-        console.log(`[MAIL EQUIPO] Notificación enviada: Cita ${textoAccion}`);
+        const data = await resp.json().catch(() => null);
+        const messageId = data?.messageId || data?.messageIds?.[0] || null;
+        console.log(
+            `[MAIL EQUIPO] Solicitud aceptada por Brevo: Cita ${textoAccion}`,
+            "| from:",
+            fromEmail,
+            "| to:",
+            destinatario,
+            messageId ? `| messageId: ${messageId}` : ""
+        );
     }
 }

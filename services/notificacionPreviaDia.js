@@ -22,7 +22,7 @@ const DIRECCION_CLINICA = process.env.DIRECCION_EMPRESA;
  * Envía el correo de recordatorio usando Brevo API
  */
 async function enviarCorreoRecordatorio({ email, nombrePaciente, apellidoPaciente, fecha, hora, tipoRecordatorio }) {
-    const { BREVO_API_KEY, CORREO_RECEPTOR, NOMBRE_EMPRESA } = process.env;
+    const { BREVO_API_KEY, CORREO_REMITENTE, NOMBRE_EMPRESA } = process.env;
 
     if (!BREVO_API_KEY) {
         console.warn("[RECORDATORIO] BREVO_API_KEY no configurada. Correo no enviado.");
@@ -34,11 +34,11 @@ async function enviarCorreoRecordatorio({ email, nombrePaciente, apellidoPacient
         return false;
     }
 
-    const fromEmail = CORREO_RECEPTOR;
+    const fromEmail = CORREO_REMITENTE;
     const fromName = NOMBRE_EMPRESA || "Clinica";
 
     if (!fromEmail) {
-        console.warn("[RECORDATORIO] CORREO_RECEPTOR no configurado. Correo no enviado.");
+        console.warn("[RECORDATORIO] CORREO_REMITENTE no configurado. Correo no enviado.");
         return false;
     }
 
@@ -169,14 +169,23 @@ ${fromName}
 
         if (!resp.ok) {
             const errText = await resp.text().catch(() => "");
-            console.error("[RECORDATORIO] Brevo error:", resp.status, errText);
+            console.error("[RECORDATORIO] Brevo error:", resp.status, errText, "| from:", fromEmail, "| to:", email);
             return false;
         }
 
-        console.log(`[RECORDATORIO] Correo de ${tipoRecordatorio} enviado a ${email}`);
+        const data = await resp.json().catch(() => null);
+        const messageId = data?.messageId || data?.messageIds?.[0] || null;
+        console.log(
+            `[RECORDATORIO] Solicitud aceptada por Brevo para ${tipoRecordatorio}.`,
+            "| to:",
+            email,
+            "| from:",
+            fromEmail,
+            messageId ? `| messageId: ${messageId}` : ""
+        );
         return true;
     } catch (error) {
-        console.error("[RECORDATORIO] Error al enviar correo:", error.message);
+        console.error("[RECORDATORIO] Error al enviar correo:", error.message, "| from:", fromEmail, "| to:", email);
         return false;
     }
 }

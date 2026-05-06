@@ -19,4 +19,17 @@ Content-Type: application/json
   ]
 }
 
+###
+
+# Ajustado por nuevo correo de acceso a seguimiento
+POST http://localhost:3001/correo/acceso-seguimiento
+Content-Type: application/json
+
+{
+  "email": "paciente@example.com",
+  "firstName": "María",
+  "lastName": "Pérez",
+  "password": "ClaveTemporal123",
+  "accessUrl": "https://metabocare.agendaclinicas.cl/sign-in"
+}
 

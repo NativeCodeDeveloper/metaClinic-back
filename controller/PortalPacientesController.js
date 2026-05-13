@@ -356,21 +356,34 @@ export default class PortalPacientesController {
                 feedback.mensaje
             );
 
-            const contenidoCorreo = buildPortalMessageEmail({
-                nombreCompleto,
-                titulo: feedback.titulo,
-                mensaje: feedback.mensaje,
-            });
+            let mailSent = true;
+            let mailError = null;
 
-            await enviarCorreoBrevo({
-                email: paciente.correo,
-                nombreCompleto,
-                asunto: contenidoCorreo.asunto,
-                htmlContent: contenidoCorreo.htmlContent,
-                textContent: contenidoCorreo.textContent,
-            });
+            try {
+                const contenidoCorreo = buildPortalMessageEmail({
+                    nombreCompleto,
+                    titulo: feedback.titulo,
+                    mensaje: feedback.mensaje,
+                });
 
-            return res.status(200).json({ message: true });
+                await enviarCorreoBrevo({
+                    email: paciente.correo,
+                    nombreCompleto,
+                    asunto: contenidoCorreo.asunto,
+                    htmlContent: contenidoCorreo.htmlContent,
+                    textContent: contenidoCorreo.textContent,
+                });
+            } catch (mailException) {
+                mailSent = false;
+                mailError = mailException.message;
+                console.error("[PORTAL PACIENTES] Check-in guardado, pero fallo el envio de correo:", mailException.message);
+            }
+
+            return res.status(200).json({
+                message: true,
+                mailSent,
+                mailError,
+            });
         } catch (error) {
             return res.status(500).json({ message: "serverProblem", error: error.message });
         }
@@ -401,21 +414,34 @@ export default class PortalPacientesController {
             );
 
             if (resultado && resultado.affectedRows > 0) {
-                const contenidoCorreo = buildPortalMessageEmail({
-                    nombreCompleto,
-                    titulo,
-                    mensaje,
-                });
+                let mailSent = true;
+                let mailError = null;
 
-                await enviarCorreoBrevo({
-                    email: paciente.correo,
-                    nombreCompleto,
-                    asunto: contenidoCorreo.asunto,
-                    htmlContent: contenidoCorreo.htmlContent,
-                    textContent: contenidoCorreo.textContent,
-                });
+                try {
+                    const contenidoCorreo = buildPortalMessageEmail({
+                        nombreCompleto,
+                        titulo,
+                        mensaje,
+                    });
 
-                return res.status(200).json({ message: true });
+                    await enviarCorreoBrevo({
+                        email: paciente.correo,
+                        nombreCompleto,
+                        asunto: contenidoCorreo.asunto,
+                        htmlContent: contenidoCorreo.htmlContent,
+                        textContent: contenidoCorreo.textContent,
+                    });
+                } catch (mailException) {
+                    mailSent = false;
+                    mailError = mailException.message;
+                    console.error("[PORTAL PACIENTES] Mensaje guardado, pero fallo el envio de correo:", mailException.message);
+                }
+
+                return res.status(200).json({
+                    message: true,
+                    mailSent,
+                    mailError,
+                });
             }
 
             return res.status(200).json({ message: false });

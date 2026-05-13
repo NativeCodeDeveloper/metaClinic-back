@@ -1,0 +1,58 @@
+### =============================================
+### PORTAL PACIENTES
+### Base URL: /portalPacientes
+### =============================================
+
+### 1. Resumen del paciente por correo
+POST http://localhost:3001/portalPacientes/resumenPacientePortal
+Content-Type: application/json
+
+{
+  "correo": "paciente@example.com"
+}
+
+###
+
+### 2. Guardar check-in semanal
+POST http://localhost:3001/portalPacientes/guardarCheckinSemanal
+Content-Type: application/json
+
+{
+  "correo": "paciente@example.com",
+  "peso": "83.5",
+  "cintura": "95",
+  "presion_arterial": "120/80",
+  "glicemia_ayuno": "95",
+  "horas_ejercicio": "3",
+  "adherencia_tratamiento": "Buena",
+  "apetito_semana": "Normal",
+  "nauseas": "Ninguna",
+  "vomitos": "Ninguno",
+  "diarrea": "Ninguna",
+  "constipacion": "Ninguna",
+  "dolor_abdominal": "Ninguno",
+  "hambre_nocturna": "Ninguna",
+  "observaciones_paciente": "Semana estable, sin novedades."
+}
+
+###
+
+### 3. Insertar mensaje directo del médico
+POST http://localhost:3001/portalPacientes/insertarMensajePaciente
+Content-Type: application/json
+
+{
+  "correo": "paciente@example.com",
+  "tipo_mensaje": "directo",
+  "titulo": "Mensaje de tu médico",
+  "mensaje": "Mantén la hidratación y continúa el plan indicado hasta el próximo control."
+}
+
+###
+
+### 4. Ejecutar recordatorios de check-in pendientes
+POST http://localhost:3001/portalPacientes/enviarRecordatoriosCheckinPendiente
+Content-Type: application/json
+x-api-key: TU_TEST_API_KEY
+
+{}

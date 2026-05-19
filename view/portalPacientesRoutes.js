@@ -3,6 +3,7 @@ import PortalPacientesController from "../controller/PortalPacientesController.j
 
 const router = Router();
 
+router.get("/resumenAlertasCheckin", PortalPacientesController.resumenAlertasCheckin);
 router.post("/resumenPacientePortal", PortalPacientesController.resumenPacientePortal);
 router.post("/guardarCheckinSemanal", PortalPacientesController.guardarCheckinSemanal);
 router.post("/insertarMensajePaciente", PortalPacientesController.insertarMensajePaciente);

@@ -30,11 +30,53 @@ export default class Pacientes {
         this.pais = pais;
     }
 
+    buildPacienteListadoQuery(whereClause = "pacienteDatos.estado_paciente <> 0") {
+        return `
+            SELECT
+                pacienteDatos.*,
+                checkin_alerta.semana_label AS checkin_alerta_semana,
+                checkin_alerta.nauseas AS checkin_alerta_nauseas,
+                checkin_alerta.vomitos AS checkin_alerta_vomitos,
+                checkin_alerta.diarrea AS checkin_alerta_diarrea,
+                checkin_alerta.constipacion AS checkin_alerta_constipacion,
+                checkin_alerta.dolor_abdominal AS checkin_alerta_dolor_abdominal,
+                checkin_alerta.hambre_nocturna AS checkin_alerta_hambre_nocturna,
+                CASE
+                    WHEN checkin_alerta.id_checkin IS NOT NULL
+                     AND (
+                        LOWER(COALESCE(checkin_alerta.nauseas, '')) NOT IN ('', 'ninguna', 'ninguno', 'normal', 'no', 'sin sintomas', 'sin síntoma', 'sin sintoma', 'ausente')
+                        OR LOWER(COALESCE(checkin_alerta.vomitos, '')) NOT IN ('', 'ninguna', 'ninguno', 'normal', 'no', 'sin sintomas', 'sin síntoma', 'sin sintoma', 'ausente')
+                        OR LOWER(COALESCE(checkin_alerta.diarrea, '')) NOT IN ('', 'ninguna', 'ninguno', 'normal', 'no', 'sin sintomas', 'sin síntoma', 'sin sintoma', 'ausente')
+                        OR LOWER(COALESCE(checkin_alerta.constipacion, '')) NOT IN ('', 'ninguna', 'ninguno', 'normal', 'no', 'sin sintomas', 'sin síntoma', 'sin sintoma', 'ausente')
+                        OR LOWER(COALESCE(checkin_alerta.dolor_abdominal, '')) NOT IN ('', 'ninguna', 'ninguno', 'normal', 'no', 'sin sintomas', 'sin síntoma', 'sin sintoma', 'ausente')
+                        OR LOWER(COALESCE(checkin_alerta.hambre_nocturna, '')) NOT IN ('', 'ninguna', 'ninguno', 'normal', 'no', 'sin sintomas', 'sin síntoma', 'sin sintoma', 'ausente')
+                    )
+                    THEN 1
+                    ELSE 0
+                END AS checkin_alerta_activa
+            FROM pacienteDatos
+            LEFT JOIN (
+                SELECT portal_paciente_checkin.*
+                FROM portal_paciente_checkin
+                INNER JOIN (
+                    SELECT id_paciente, MAX(id_checkin) AS max_id_checkin
+                    FROM portal_paciente_checkin
+                    WHERE estado_registro <> 0
+                      AND estado_checkin = 'completado'
+                    GROUP BY id_paciente
+                ) ultimo_checkin
+                  ON ultimo_checkin.max_id_checkin = portal_paciente_checkin.id_checkin
+            ) checkin_alerta
+              ON checkin_alerta.id_paciente = pacienteDatos.id_paciente
+            WHERE ${whereClause}
+        `;
+    }
+
 
     // SELECCION DE TODOS LOS PACIENTES DE LA BASE DE DATOS
     async selectPaciente(){
         const conexion = DataBase.getInstance();
-        const query = 'SELECT * FROM pacienteDatos WHERE estado_paciente <> 0';
+        const query = this.buildPacienteListadoQuery();
         try {
             const resultado = await conexion.ejecutarQuery(query);
             return resultado;
@@ -64,7 +106,7 @@ export default class Pacientes {
     //SELECCION DE PACIENTE POR -----> RUT %PARECIDO% <------
     async PacienteParecidoRut(rut){
         const conexion = DataBase.getInstance();
-        const query = 'SELECT * FROM pacienteDatos WHERE rut LIKE ?';
+        const query = this.buildPacienteListadoQuery('pacienteDatos.rut LIKE ?');
         const param = [`%${rut}%`]
         try {
             const resultado = await conexion.ejecutarQuery(query, param);
@@ -83,7 +125,7 @@ export default class Pacientes {
     //SELECCION DE PACIENTE POR -----> NOMBRE %PARECIDO% <------
     async PacienteParecidoNombre(nombre){
         const conexion = DataBase.getInstance();
-        const query = 'SELECT * FROM pacienteDatos WHERE nombre LIKE ?';
+        const query = this.buildPacienteListadoQuery('pacienteDatos.nombre LIKE ?');
         const param = [`%${nombre}%`]
         try {
             const resultado = await conexion.ejecutarQuery(query, param);

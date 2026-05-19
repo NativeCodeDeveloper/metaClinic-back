@@ -303,6 +303,49 @@ export default class PortalPacientes {
         }
     }
 
+    async seleccionarAlertasCheckinPacientes() {
+        const conexion = DataBase.getInstance();
+        const query = `
+            SELECT
+                checkin.id_paciente,
+                checkin.semana_label,
+                checkin.nauseas,
+                checkin.vomitos,
+                checkin.diarrea,
+                checkin.constipacion,
+                checkin.dolor_abdominal,
+                checkin.hambre_nocturna,
+                CASE
+                    WHEN (
+                        LOWER(COALESCE(checkin.nauseas, '')) NOT IN ('', 'ninguna', 'ninguno', 'normal', 'no', 'sin sintomas', 'sin síntoma', 'sin sintoma', 'ausente')
+                        OR LOWER(COALESCE(checkin.vomitos, '')) NOT IN ('', 'ninguna', 'ninguno', 'normal', 'no', 'sin sintomas', 'sin síntoma', 'sin sintoma', 'ausente')
+                        OR LOWER(COALESCE(checkin.diarrea, '')) NOT IN ('', 'ninguna', 'ninguno', 'normal', 'no', 'sin sintomas', 'sin síntoma', 'sin sintoma', 'ausente')
+                        OR LOWER(COALESCE(checkin.constipacion, '')) NOT IN ('', 'ninguna', 'ninguno', 'normal', 'no', 'sin sintomas', 'sin síntoma', 'sin sintoma', 'ausente')
+                        OR LOWER(COALESCE(checkin.dolor_abdominal, '')) NOT IN ('', 'ninguna', 'ninguno', 'normal', 'no', 'sin sintomas', 'sin síntoma', 'sin sintoma', 'ausente')
+                        OR LOWER(COALESCE(checkin.hambre_nocturna, '')) NOT IN ('', 'ninguna', 'ninguno', 'normal', 'no', 'sin sintomas', 'sin síntoma', 'sin sintoma', 'ausente')
+                    )
+                    THEN 1
+                    ELSE 0
+                END AS checkin_alerta_activa
+            FROM portal_paciente_checkin checkin
+            INNER JOIN (
+                SELECT id_paciente, MAX(id_checkin) AS max_id_checkin
+                FROM portal_paciente_checkin
+                WHERE estado_registro <> 0
+                  AND estado_checkin = 'completado'
+                GROUP BY id_paciente
+            ) ultimo_checkin
+              ON ultimo_checkin.max_id_checkin = checkin.id_checkin
+        `;
+
+        try {
+            const resultado = await conexion.ejecutarQuery(query);
+            return resultado;
+        } catch (error) {
+            throw new Error("Problema al consultar alertas de checkin desde PortalPacientes.js");
+        }
+    }
+
     async marcarRecordatorioCheckin(id_checkin) {
         const conexion = DataBase.getInstance();
         const query = `

@@ -108,6 +108,41 @@ function buildAutomaticFeedback(checkin) {
     };
 }
 
+function isTreatmentAdherenceAlert(value) {
+    return ["regular", "mala"].includes(normalizeString(value).toLowerCase());
+}
+
+function isAppetiteAlert(value) {
+    return ["muy reducido", "reducido", "aumentado"].includes(normalizeString(value).toLowerCase());
+}
+
+function getCheckinAlertReasons(checkin) {
+    const reasons = [];
+
+    if (isTreatmentAdherenceAlert(checkin.adherencia_tratamiento)) {
+        reasons.push(`Adherencia al tratamiento: ${checkin.adherencia_tratamiento}`);
+    }
+
+    if (isAppetiteAlert(checkin.apetito_semana)) {
+        reasons.push(`Apetito esta semana: ${checkin.apetito_semana}`);
+    }
+
+    [
+        ["Náuseas", checkin.nauseas],
+        ["Vómitos", checkin.vomitos],
+        ["Diarrea", checkin.diarrea],
+        ["Constipación", checkin.constipacion],
+        ["Dolor abdominal", checkin.dolor_abdominal],
+        ["Hambre nocturna", checkin.hambre_nocturna],
+    ].forEach(([label, value]) => {
+        if (isSymptomAlert(value)) {
+            reasons.push(`${label}: ${value}`);
+        }
+    });
+
+    return reasons;
+}
+
 async function enviarCorreoBrevo({ email, nombreCompleto, asunto, htmlContent, textContent }) {
     const apiKey = process.env.BREVO_API_KEY;
     const empresa = process.env.NOMBRE_EMPRESA || "MetaClinic";
@@ -188,8 +223,72 @@ function buildPortalMessageEmail({ nombreCompleto, titulo, mensaje }) {
     };
 }
 
+function buildOwnerCheckinAlertEmail({ paciente, telefono, razones, semanaLabel }) {
+    const empresa = process.env.NOMBRE_EMPRESA || "MetaClinic";
+    const nombreCompleto = `${paciente.nombre || ""} ${paciente.apellido || ""}`.trim() || "Paciente";
+    const rut = paciente.rut || "Sin RUT";
+    const telefonoPaciente = telefono || paciente.telefono || "Sin teléfono";
+    const detalleRazones = Array.isArray(razones) && razones.length > 0
+        ? razones.map((razon) => `<li style="margin:0 0 8px;">${razon}</li>`).join("")
+        : `<li style="margin:0 0 8px;">Check-in alterado sin detalle adicional.</li>`;
+    const detalleRazonesTexto = Array.isArray(razones) && razones.length > 0
+        ? razones.map((razon) => `- ${razon}`).join("\n")
+        : "- Check-in alterado sin detalle adicional.";
+
+    return {
+        asunto: "Alerta de Paciente",
+        htmlContent: `
+            <div style="margin:0; padding:32px 0; background:#f8fafc; font-family:Arial, Helvetica, sans-serif;">
+                <div style="max-width:680px; margin:0 auto; background:#ffffff; border:1px solid #e2e8f0; border-radius:18px; overflow:hidden;">
+                    <div style="padding:28px 32px; background:linear-gradient(135deg,#7f1d1d 0%,#b91c1c 100%);">
+                        <div style="font-size:12px; letter-spacing:0.18em; text-transform:uppercase; color:#fecaca; font-weight:700; margin-bottom:8px;">
+                            Alerta clínica
+                        </div>
+                        <h1 style="margin:0; color:#ffffff; font-size:24px;">Alerta de Paciente</h1>
+                    </div>
+                    <div style="padding:28px 32px;">
+                        <p style="margin:0 0 16px; color:#0f172a; font-size:15px; line-height:1.8;">
+                            El paciente <strong>${nombreCompleto}</strong>, RUT <strong>${rut}</strong>, teléfono <strong>${telefonoPaciente}</strong>, necesita revisión por Check-in alterado.
+                        </p>
+                        <p style="margin:0 0 16px; color:#334155; font-size:15px; line-height:1.8;">
+                            ${semanaLabel ? `Semana informada: <strong>${semanaLabel}</strong>.` : ""}
+                        </p>
+                        <div style="margin-top:18px; padding:18px 20px; border:1px solid #fecaca; background:#fef2f2; border-radius:14px;">
+                            <div style="margin:0 0 10px; color:#991b1b; font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:0.12em;">
+                                Campos alterados
+                            </div>
+                            <ul style="margin:0; padding-left:18px; color:#7f1d1d; font-size:14px; line-height:1.7;">
+                                ${detalleRazones}
+                            </ul>
+                        </div>
+                    </div>
+                    <div style="padding:18px 32px 28px; color:#64748b; font-size:13px; line-height:1.8;">
+                        Correo generado automáticamente por ${empresa}.
+                    </div>
+                </div>
+            </div>
+        `,
+        textContent:
+            `Alerta de Paciente\n\n` +
+            `El paciente ${nombreCompleto}, RUT ${rut}, teléfono ${telefonoPaciente}, necesita revisión por Check-in alterado.\n` +
+            `${semanaLabel ? `Semana informada: ${semanaLabel}\n` : ""}\n` +
+            `Campos alterados:\n${detalleRazonesTexto}`,
+    };
+}
+
 export default class PortalPacientesController {
     constructor() {
+    }
+
+    static async resumenAlertasCheckin(req, res) {
+        try {
+            const portalPacientes = new PortalPacientes();
+            const alertas = await portalPacientes.seleccionarAlertasCheckinPacientes();
+
+            return res.status(200).json(Array.isArray(alertas) ? alertas : []);
+        } catch (error) {
+            return res.status(500).json({ message: "serverProblem", error: error.message });
+        }
     }
 
     static async resumenPacientePortal(req, res) {
@@ -292,6 +391,7 @@ export default class PortalPacientesController {
             }
 
             const paciente = pacienteResultado[0];
+            const nombreCompleto = `${paciente.nombre || ""} ${paciente.apellido || ""}`.trim() || "Paciente";
             const semanaActual = getCurrentWeekData();
 
             let checkinResultado = await portalPacientes.seleccionarCheckinSemanalPaciente(
@@ -348,6 +448,16 @@ export default class PortalPacientesController {
                 dolor_abdominal,
                 hambre_nocturna,
             });
+            const checkinAlertReasons = getCheckinAlertReasons({
+                adherencia_tratamiento,
+                apetito_semana,
+                nauseas,
+                vomitos,
+                diarrea,
+                constipacion,
+                dolor_abdominal,
+                hambre_nocturna,
+            });
 
             await portalPacientes.insertarMensajePaciente(
                 paciente.id_paciente,
@@ -358,6 +468,8 @@ export default class PortalPacientesController {
 
             let mailSent = true;
             let mailError = null;
+            let ownerAlertSent = true;
+            let ownerAlertError = null;
 
             try {
                 const contenidoCorreo = buildPortalMessageEmail({
@@ -379,10 +491,41 @@ export default class PortalPacientesController {
                 console.error("[PORTAL PACIENTES] Check-in guardado, pero fallo el envio de correo:", mailException.message);
             }
 
+            if (checkinAlertReasons.length > 0) {
+                try {
+                    const destinatarioAlerta = process.env.CORREO_RECEPTOR;
+
+                    if (!destinatarioAlerta) {
+                        throw new Error("Falta CORREO_RECEPTOR en .env");
+                    }
+
+                    const alertaCorreo = buildOwnerCheckinAlertEmail({
+                        paciente,
+                        telefono: paciente.telefono,
+                        razones: checkinAlertReasons,
+                        semanaLabel: semanaActual.semana_label,
+                    });
+
+                    await enviarCorreoBrevo({
+                        email: destinatarioAlerta,
+                        nombreCompleto: process.env.NOMBRE_EMPRESA || "Equipo médico",
+                        asunto: alertaCorreo.asunto,
+                        htmlContent: alertaCorreo.htmlContent,
+                        textContent: alertaCorreo.textContent,
+                    });
+                } catch (ownerMailException) {
+                    ownerAlertSent = false;
+                    ownerAlertError = ownerMailException.message;
+                    console.error("[PORTAL PACIENTES] Check-in alterado, pero fallo el envio de alerta al dueño:", ownerMailException.message);
+                }
+            }
+
             return res.status(200).json({
                 message: true,
                 mailSent,
                 mailError,
+                ownerAlertSent,
+                ownerAlertError,
             });
         } catch (error) {
             return res.status(500).json({ message: "serverProblem", error: error.message });

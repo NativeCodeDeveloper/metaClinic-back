@@ -29,6 +29,25 @@ export default class PortalPacientes {
         this.apetito_semana = apetito_semana;
     }
 
+    async ensureAlertaRevisionTable() {
+        const conexion = DataBase.getInstance();
+        const query = `
+            CREATE TABLE IF NOT EXISTS portal_paciente_checkin_alerta_revision (
+                id_revision INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                id_checkin INT NOT NULL,
+                revisada TINYINT(1) NOT NULL DEFAULT 1,
+                fecha_revision DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_checkin_alerta_revision (id_checkin)
+            )
+        `;
+
+        try {
+            await conexion.ejecutarQuery(query);
+        } catch (error) {
+            throw new Error("Problema al asegurar tabla de revision de alertas desde PortalPacientes.js");
+        }
+    }
+
     async seleccionarPacientePortalPorCorreo(correo) {
         const conexion = DataBase.getInstance();
         const query = `
@@ -198,6 +217,7 @@ export default class PortalPacientes {
         hambre_nocturna,
         observaciones_paciente
     ) {
+        await this.ensureAlertaRevisionTable();
         const conexion = DataBase.getInstance();
         const query = `
             UPDATE portal_paciente_checkin
@@ -244,6 +264,43 @@ export default class PortalPacientes {
             return resultado;
         } catch (error) {
             throw new Error("Problema al actualizar checkin semanal desde PortalPacientes.js");
+        }
+    }
+
+    async limpiarRevisionAlertaCheckin(id_checkin) {
+        await this.ensureAlertaRevisionTable();
+        const conexion = DataBase.getInstance();
+        const query = `
+            DELETE FROM portal_paciente_checkin_alerta_revision
+            WHERE id_checkin = ?
+        `;
+        const params = [id_checkin];
+
+        try {
+            const resultado = await conexion.ejecutarQuery(query, params);
+            return resultado;
+        } catch (error) {
+            throw new Error("Problema al limpiar revisión de alerta desde PortalPacientes.js");
+        }
+    }
+
+    async marcarAlertaCheckinRevisada(id_checkin) {
+        await this.ensureAlertaRevisionTable();
+        const conexion = DataBase.getInstance();
+        const query = `
+            INSERT INTO portal_paciente_checkin_alerta_revision (id_checkin, revisada, fecha_revision)
+            VALUES (?, 1, NOW())
+            ON DUPLICATE KEY UPDATE
+                revisada = 1,
+                fecha_revision = NOW()
+        `;
+        const params = [id_checkin];
+
+        try {
+            const resultado = await conexion.ejecutarQuery(query, params);
+            return resultado;
+        } catch (error) {
+            throw new Error("Problema al marcar alerta de checkin como revisada desde PortalPacientes.js");
         }
     }
 
@@ -304,9 +361,11 @@ export default class PortalPacientes {
     }
 
     async seleccionarAlertasCheckinPacientes() {
+        await this.ensureAlertaRevisionTable();
         const conexion = DataBase.getInstance();
         const query = `
             SELECT
+                checkin.id_checkin,
                 checkin.id_paciente,
                 checkin.semana_label,
                 checkin.nauseas,
@@ -315,8 +374,9 @@ export default class PortalPacientes {
                 checkin.constipacion,
                 checkin.dolor_abdominal,
                 checkin.hambre_nocturna,
+                COALESCE(revision.revisada, 0) AS checkin_alerta_revisada,
                 CASE
-                    WHEN (
+                    WHEN COALESCE(revision.revisada, 0) = 0 AND (
                         LOWER(COALESCE(checkin.nauseas, '')) NOT IN ('', 'ninguna', 'ninguno', 'normal', 'no', 'sin sintomas', 'sin síntoma', 'sin sintoma', 'ausente')
                         OR LOWER(COALESCE(checkin.vomitos, '')) NOT IN ('', 'ninguna', 'ninguno', 'normal', 'no', 'sin sintomas', 'sin síntoma', 'sin sintoma', 'ausente')
                         OR LOWER(COALESCE(checkin.diarrea, '')) NOT IN ('', 'ninguna', 'ninguno', 'normal', 'no', 'sin sintomas', 'sin síntoma', 'sin sintoma', 'ausente')
@@ -336,6 +396,8 @@ export default class PortalPacientes {
                 GROUP BY id_paciente
             ) ultimo_checkin
               ON ultimo_checkin.max_id_checkin = checkin.id_checkin
+            LEFT JOIN portal_paciente_checkin_alerta_revision revision
+              ON revision.id_checkin = checkin.id_checkin
         `;
 
         try {

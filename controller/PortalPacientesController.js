@@ -291,6 +291,25 @@ export default class PortalPacientesController {
         }
     }
 
+    static async marcarAlertaCheckinRevisada(req, res) {
+        try {
+            const { id_checkin } = req.body;
+
+            if (!id_checkin) {
+                return res.status(400).json({ message: "sindato" });
+            }
+
+            const portalPacientes = new PortalPacientes();
+            const resultado = await portalPacientes.marcarAlertaCheckinRevisada(id_checkin);
+
+            return res.status(200).json({
+                message: Boolean(resultado && resultado.affectedRows >= 0),
+            });
+        } catch (error) {
+            return res.status(500).json({ message: "serverProblem", error: error.message });
+        }
+    }
+
     static async resumenPacientePortal(req, res) {
         try {
             const { correo } = req.body;
@@ -458,6 +477,10 @@ export default class PortalPacientesController {
                 dolor_abdominal,
                 hambre_nocturna,
             });
+
+            if (checkinAlertReasons.length > 0) {
+                await portalPacientes.limpiarRevisionAlertaCheckin(checkinActual.id_checkin);
+            }
 
             await portalPacientes.insertarMensajePaciente(
                 paciente.id_paciente,

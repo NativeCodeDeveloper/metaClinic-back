@@ -30,10 +30,30 @@ export default class Pacientes {
         this.pais = pais;
     }
 
+    async ensureAlertaRevisionTable() {
+        const conexion = DataBase.getInstance();
+        const query = `
+            CREATE TABLE IF NOT EXISTS portal_paciente_checkin_alerta_revision (
+                id_revision INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                id_checkin INT NOT NULL,
+                revisada TINYINT(1) NOT NULL DEFAULT 1,
+                fecha_revision DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_checkin_alerta_revision (id_checkin)
+            )
+        `;
+
+        try {
+            await conexion.ejecutarQuery(query);
+        } catch (error) {
+            throw new Error("Problema al asegurar tabla de revision de alertas desde Pacientes.js");
+        }
+    }
+
     buildPacienteListadoQuery(whereClause = "pacienteDatos.estado_paciente <> 0") {
         return `
             SELECT
                 pacienteDatos.*,
+                checkin_alerta.id_checkin AS checkin_alerta_id_checkin,
                 checkin_alerta.semana_label AS checkin_alerta_semana,
                 checkin_alerta.nauseas AS checkin_alerta_nauseas,
                 checkin_alerta.vomitos AS checkin_alerta_vomitos,
@@ -41,8 +61,10 @@ export default class Pacientes {
                 checkin_alerta.constipacion AS checkin_alerta_constipacion,
                 checkin_alerta.dolor_abdominal AS checkin_alerta_dolor_abdominal,
                 checkin_alerta.hambre_nocturna AS checkin_alerta_hambre_nocturna,
+                COALESCE(checkin_alerta_revision.revisada, 0) AS checkin_alerta_revisada,
                 CASE
                     WHEN checkin_alerta.id_checkin IS NOT NULL
+                     AND COALESCE(checkin_alerta_revision.revisada, 0) = 0
                      AND (
                         LOWER(COALESCE(checkin_alerta.nauseas, '')) NOT IN ('', 'ninguna', 'ninguno', 'normal', 'no', 'sin sintomas', 'sin síntoma', 'sin sintoma', 'ausente')
                         OR LOWER(COALESCE(checkin_alerta.vomitos, '')) NOT IN ('', 'ninguna', 'ninguno', 'normal', 'no', 'sin sintomas', 'sin síntoma', 'sin sintoma', 'ausente')
@@ -68,6 +90,8 @@ export default class Pacientes {
                   ON ultimo_checkin.max_id_checkin = portal_paciente_checkin.id_checkin
             ) checkin_alerta
               ON checkin_alerta.id_paciente = pacienteDatos.id_paciente
+            LEFT JOIN portal_paciente_checkin_alerta_revision checkin_alerta_revision
+              ON checkin_alerta_revision.id_checkin = checkin_alerta.id_checkin
             WHERE ${whereClause}
         `;
     }
@@ -75,6 +99,7 @@ export default class Pacientes {
 
     // SELECCION DE TODOS LOS PACIENTES DE LA BASE DE DATOS
     async selectPaciente(){
+        await this.ensureAlertaRevisionTable();
         const conexion = DataBase.getInstance();
         const query = this.buildPacienteListadoQuery();
         try {
@@ -105,6 +130,7 @@ export default class Pacientes {
 
     //SELECCION DE PACIENTE POR -----> RUT %PARECIDO% <------
     async PacienteParecidoRut(rut){
+        await this.ensureAlertaRevisionTable();
         const conexion = DataBase.getInstance();
         const query = this.buildPacienteListadoQuery('pacienteDatos.rut LIKE ?');
         const param = [`%${rut}%`]
@@ -124,6 +150,7 @@ export default class Pacientes {
 
     //SELECCION DE PACIENTE POR -----> NOMBRE %PARECIDO% <------
     async PacienteParecidoNombre(nombre){
+        await this.ensureAlertaRevisionTable();
         const conexion = DataBase.getInstance();
         const query = this.buildPacienteListadoQuery('pacienteDatos.nombre LIKE ?');
         const param = [`%${nombre}%`]

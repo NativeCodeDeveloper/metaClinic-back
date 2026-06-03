@@ -35,18 +35,129 @@ export default class ReservaPacientes {
 
     }
 
+    obtenerNombreLockProfesional(id_profesional) {
+        return `reserva_profesional_${id_profesional}`;
+    }
+
+    async ejecutarConLockProfesional(id_profesional, callback) {
+        const conexion = DataBase.getInstance();
+        const connection = await conexion.pool.getConnection();
+        const lockName = this.obtenerNombreLockProfesional(id_profesional);
+        let lockAdquirido = false;
+
+        try {
+            const [lockRows] = await connection.query("SELECT GET_LOCK(?, 10) AS lockAdquirido", [lockName]);
+            lockAdquirido = lockRows?.[0]?.lockAdquirido === 1;
+
+            if (!lockAdquirido) {
+                throw new Error("No fue posible bloquear la agenda del profesional para agendar.");
+            }
+
+            await connection.beginTransaction();
+            const resultado = await callback(connection);
+            await connection.commit();
+            return resultado;
+        } catch (error) {
+            try {
+                await connection.rollback();
+            } catch (_) {
+                // noop
+            }
+            throw error;
+        } finally {
+            if (lockAdquirido) {
+                try {
+                    await connection.query("SELECT RELEASE_LOCK(?)", [lockName]);
+                } catch (_) {
+                    // noop
+                }
+            }
+            connection.release();
+        }
+    }
+
+    async contarConflictosHorario(connection, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, id_profesional, id_reservaExcluir = null) {
+        const excluirReservaSql = id_reservaExcluir ? "AND id_reserva <> ?" : "";
+        const query = `
+            SELECT COUNT(*) AS cnt FROM (
+                SELECT id_reserva AS id
+                FROM reservaPacientes
+                WHERE id_profesional = ?
+                  AND estadoPeticion <> 0
+                  AND LOWER(estadoReserva) NOT IN ('cancelada', 'anulada')
+                  ${excluirReservaSql}
+                  AND NOT (
+                    TIMESTAMP(fechaFinalizacion, horaFinalizacion) <= TIMESTAMP(?, ?)
+                    OR TIMESTAMP(fechaInicio, horaInicio) >= TIMESTAMP(?, ?)
+                  )
+                UNION ALL
+                SELECT id_bloqueo AS id
+                FROM bloqueoAgenda
+                WHERE id_profesional = ?
+                  AND estado_bloqueoAgenda <> 0
+                  AND NOT (
+                    TIMESTAMP(fechaFinalizacion, horaFinalizacion) <= TIMESTAMP(?, ?)
+                    OR TIMESTAMP(fechaInicio, horaInicio) >= TIMESTAMP(?, ?)
+                  )
+            ) AS conflictos
+        `;
+
+        const params = [
+            id_profesional,
+            ...(id_reservaExcluir ? [id_reservaExcluir] : []),
+            fechaInicio,
+            horaInicio,
+            fechaFinalizacion,
+            horaFinalizacion,
+            id_profesional,
+            fechaInicio,
+            horaInicio,
+            fechaFinalizacion,
+            horaFinalizacion,
+        ];
+
+        const [filas] = await connection.query(query, params);
+        return Number(filas?.[0]?.cnt || 0);
+    }
+
 
     async cambiarReservaPagada(preference_id) {
         try {
             const conexion = DataBase.getInstance();
-            const query = "UPDATE reservaPacientes SET estadoReserva = 'reservada'  WHERE preference_id = ?";
-            const params = [preference_id];
-            const resultado = await conexion.ejecutarQuery(query, params);
-            if (resultado) {
-                return resultado;
-            } else {
-                return console.error('Ha habido un problema al ejecutar la consulta desde model en ReservaPacientes.js , NO se ha podido cambiar el estado correctamente a pagado ')
+            const reservasPendientes = await conexion.ejecutarQuery(
+                "SELECT * FROM reservaPacientes WHERE preference_id = ? AND estadoPeticion = 0 LIMIT 1",
+                [preference_id]
+            );
+            const reservaPendiente = Array.isArray(reservasPendientes) ? reservasPendientes[0] : null;
+
+            if (!reservaPendiente) {
+                return await conexion.ejecutarQuery(
+                    "UPDATE reservaPacientes SET estadoReserva = 'reservada' WHERE preference_id = ?",
+                    [preference_id]
+                );
             }
+
+            return await this.ejecutarConLockProfesional(reservaPendiente.id_profesional, async (connection) => {
+                const conflictos = await this.contarConflictosHorario(
+                    connection,
+                    reservaPendiente.fechaInicio,
+                    reservaPendiente.horaInicio,
+                    reservaPendiente.fechaFinalizacion,
+                    reservaPendiente.horaFinalizacion,
+                    reservaPendiente.id_profesional,
+                    reservaPendiente.id_reserva
+                );
+
+                if (conflictos > 0) {
+                    return {conflicto: true};
+                }
+
+                const [resultado] = await connection.query(
+                    "UPDATE reservaPacientes SET estadoReserva = 'reservada', estadoPeticion = 1 WHERE preference_id = ?",
+                    [preference_id]
+                );
+                return resultado;
+            });
         } catch (e) {
             console.log('Problema encontrado a nivel del model en ReservaPacientes.js :  ' + e);
             throw new Error('No se ha podido actualizar el pago desde la clase del modelo ReservaPacientes.js :  ' + e);
@@ -76,14 +187,26 @@ export default class ReservaPacientes {
     // Al actualizar se resetean los flags de recordatorio para que se reenvíen con la nueva fecha/hora
     async actualizarReserva(nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, estadoReserva, id_profesional, id_reserva) {
         try {
-            const conexion = DataBase.getInstance();
-            const query = 'UPDATE reservaPacientes SET nombrePaciente = ? , apellidoPaciente = ?, rut = ? , telefono = ? , email = ? , fechaInicio = ?  , horaInicio = ? , fechaFinalizacion = ? , horaFinalizacion = ? , estadoReserva = ? , id_profesional = ? , recordatorio12h = 0, recordatorio6h = 0, wspRecordatorio12h = 0, wspRecordatorio6h = 0, wspRecordatorio1h = 0 WHERE id_reserva = ?';
-            const param = [nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, estadoReserva, id_profesional, id_reserva]
-            const resultadoQuery = await conexion.ejecutarQuery(query, param);
+            return await this.ejecutarConLockProfesional(id_profesional, async (connection) => {
+                const conflictos = await this.contarConflictosHorario(
+                    connection,
+                    fechaInicio,
+                    horaInicio,
+                    fechaFinalizacion,
+                    horaFinalizacion,
+                    id_profesional,
+                    id_reserva
+                );
 
-            if (resultadoQuery) {
+                if (conflictos > 0) {
+                    return {conflicto: true};
+                }
+
+                const query = 'UPDATE reservaPacientes SET nombrePaciente = ? , apellidoPaciente = ?, rut = ? , telefono = ? , email = ? , fechaInicio = ?  , horaInicio = ? , fechaFinalizacion = ? , horaFinalizacion = ? , estadoReserva = ? , id_profesional = ? , recordatorio12h = 0, recordatorio6h = 0, wspRecordatorio12h = 0, wspRecordatorio6h = 0, wspRecordatorio1h = 0 WHERE id_reserva = ?';
+                const param = [nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, estadoReserva, id_profesional, id_reserva]
+                const [resultadoQuery] = await connection.query(query, param);
                 return resultadoQuery;
-            }
+            });
         } catch (e) {
             throw new Error(e)
         }
@@ -147,14 +270,25 @@ export default class ReservaPacientes {
     //METODO PARA INSERTAR NUEVAS CITAS MEDICAS
     async insertarReservaPaciente(nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, estadoReserva, id_profesional) {
         try {
-            const conexion = DataBase.getInstance();
-            const query = 'INSERT INTO reservaPacientes(nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio,fechaFinalizacion, horaFinalizacion, estadoReserva, id_profesional) VALUES (?,?,?,?,?,?,?,?,?,?,?)';
-            const param = [nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, estadoReserva, id_profesional];
+            return await this.ejecutarConLockProfesional(id_profesional, async (connection) => {
+                const conflictos = await this.contarConflictosHorario(
+                    connection,
+                    fechaInicio,
+                    horaInicio,
+                    fechaFinalizacion,
+                    horaFinalizacion,
+                    id_profesional
+                );
 
-            const resultadoQuery = await conexion.ejecutarQuery(query, param);
-            if (resultadoQuery) {
+                if (conflictos > 0) {
+                    return {conflicto: true};
+                }
+
+                const query = 'INSERT INTO reservaPacientes(nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio,fechaFinalizacion, horaFinalizacion, estadoReserva, id_profesional) VALUES (?,?,?,?,?,?,?,?,?,?,?)';
+                const param = [nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, estadoReserva, id_profesional];
+                const [resultadoQuery] = await connection.query(query, param);
                 return resultadoQuery;
-            }
+            });
         } catch (e) {
             throw new Error(e)
         }
@@ -170,7 +304,7 @@ SELECT COUNT(*) AS cnt FROM (
       FROM reservaPacientes
       WHERE id_profesional = ?
       AND estadoPeticion <> 0
-      AND estadoReserva <> 'cancelada'
+      AND LOWER(estadoReserva) NOT IN ('cancelada', 'anulada')
       AND NOT (
         TIMESTAMP(fechaFinalizacion, horaFinalizacion) <= TIMESTAMP(?, ?)
         OR TIMESTAMP(fechaInicio, horaInicio) >= TIMESTAMP(?, ?)
@@ -294,14 +428,27 @@ SELECT COUNT(*) AS cnt FROM (
     //METODO PARA INSERTAR NUEVAS CITAS MEDICAS DESDE METODOS INTERNOS DEL BACKEND COMO MERCADO PAGO
     async insertarReservaPacienteBackend(nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, estadoReserva, preference_id, estadoPeticion,id_profesional) {
         try {
-            const conexion = DataBase.getInstance();
-            const query = 'INSERT INTO reservaPacientes(nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio,fechaFinalizacion, horaFinalizacion, estadoReserva, preference_id, estadoPeticion,id_profesional) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)';
-            const param = [nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, estadoReserva, preference_id,estadoPeticion,id_profesional];
+            return await this.ejecutarConLockProfesional(id_profesional, async (connection) => {
+                if (Number(estadoPeticion) !== 0) {
+                    const conflictos = await this.contarConflictosHorario(
+                        connection,
+                        fechaInicio,
+                        horaInicio,
+                        fechaFinalizacion,
+                        horaFinalizacion,
+                        id_profesional
+                    );
 
-            const resultadoQuery = await conexion.ejecutarQuery(query, param);
-            if (resultadoQuery) {
+                    if (conflictos > 0) {
+                        return {conflicto: true};
+                    }
+                }
+
+                const query = 'INSERT INTO reservaPacientes(nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio,fechaFinalizacion, horaFinalizacion, estadoReserva, preference_id, estadoPeticion,id_profesional) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)';
+                const param = [nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, estadoReserva, preference_id,estadoPeticion,id_profesional];
+                const [resultadoQuery] = await connection.query(query, param);
                 return resultadoQuery;
-            }
+            });
         } catch (e) {
             throw new Error(e)
         }
@@ -359,20 +506,7 @@ SELECT COUNT(*) AS cnt FROM (
 
     * */
     async cambiarReservaPagadaVisible(preference_id) {
-        try {
-            const conexion = DataBase.getInstance();
-            const query = "UPDATE reservaPacientes SET estadoPeticion = 1  WHERE preference_id = ?";
-            const params = [preference_id];
-            const resultado = await conexion.ejecutarQuery(query, params);
-            if (resultado) {
-                return resultado;
-            } else {
-                return console.error('Ha habido un problema al ejecutar la consulta desde model en ReservaPacientes.js , NO se ha podido cambiar el estado correctamente a pagado ')
-            }
-        } catch (e) {
-            console.log('Problema encontrado a nivel del model en ReservaPacientes.js :  ' + e);
-            throw new Error('No se ha podido actualizar el pago desde la clase del modelo ReservaPacientes.js :  ' + e);
-        }
+        return this.cambiarReservaPagada(preference_id);
     }
 
 

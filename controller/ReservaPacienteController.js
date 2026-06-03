@@ -192,6 +192,10 @@ export default class ReservaPacienteController {
             const claseReservaPaciente = new ReservaPacientes();
             const resultadoQuery = await claseReservaPaciente.actualizarReserva(nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, estadoReserva, id_profesional, id_reserva);
 
+            if (resultadoQuery?.conflicto) {
+                return res.status(400).send({message: "conflicto"})
+            }
+
             if (resultadoQuery.affectedRows > 0) {
                 return res.status(200).json({message: true});
             } else {
@@ -309,6 +313,10 @@ export default class ReservaPacienteController {
 
                 const resultadoQuery = await claseReservaPaciente.insertarReservaPaciente(nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, estadoReserva, id_profesional)
 
+                if (resultadoQuery?.conflicto) {
+                    return res.status(400).send({message: "conflicto"})
+                }
+
                 if (resultadoQuery.affectedRows > 0) {
                     // Enviar correo de confirmación (no bloquear la respuesta si falla)
 
@@ -425,6 +433,10 @@ export default class ReservaPacienteController {
             } else {
 
                 const resultadoQuery = await claseReservaPaciente.insertarReservaPaciente(nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, estadoReserva, id_profesional)
+
+                if (resultadoQuery?.conflicto) {
+                    return res.status(400).send({message: "conflicto"})
+                }
 
                 if (resultadoQuery.affectedRows > 0) {
                     // Enviar correo de confirmación al paciente

@@ -96,6 +96,10 @@ export const createOrder = async (req, res) => {
                 estadoReserva, preference_id,estadoPeticion,id_profesional
             );
 
+            if (resultadoInsert?.conflicto) {
+                return res.status(409).json({ error: 'Horario no disponible para este profesional' });
+            }
+
             if (resultadoInsert && resultadoInsert.affectedRows > 0) {
                 console.log('Reserva insertada con estado "pendiente pago", preference_id:', preference_id);
                 return res.status(200).json({
@@ -219,6 +223,11 @@ export const recibirPago = async (req, res) => {
                 // --- CAMBIAR ESTADO DE LA RESERVA A "reservada" ---
                 const reservaPacientesClass = new ReservaPacientes();
                 const resultadoQuery = await reservaPacientesClass.cambiarReservaPagadaVisible(preference_id);
+
+                if (resultadoQuery?.conflicto) {
+                    console.warn("--------> PAGO APROBADO, PERO HORARIO YA OCUPADO para preference_id:", preference_id);
+                    return res.status(200).json({ received: true, conflicto_horario: true });
+                }
 
                 if (resultadoQuery && resultadoQuery.affectedRows > 0) {
                     console.log("--------> RESERVA ACTUALIZADA A 'reservada' para preference_id:", preference_id);

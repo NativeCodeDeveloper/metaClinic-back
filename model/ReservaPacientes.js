@@ -180,18 +180,16 @@ SELECT COUNT(*) AS cnt FROM (
       FROM bloqueoAgenda
       WHERE id_profesional = ?
       AND estado_bloqueoAgenda <> 0
-      AND ? >= fechaInicio
-      AND ? <= fechaFinalizacion
       AND NOT (
-        horaFinalizacion <= ?
-        OR horaInicio >= ?
+        TIMESTAMP(fechaFinalizacion, horaFinalizacion) <= TIMESTAMP(?, ?)
+        OR TIMESTAMP(fechaInicio, horaInicio) >= TIMESTAMP(?, ?)
       )
     ) AS conflictos
     `;
 
         const params = [
             id_profesional, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion,
-            id_profesional, fechaInicio, fechaInicio, horaInicio, horaFinalizacion
+            id_profesional, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion
         ];
         const filas = await conexion.ejecutarQuery(query, params);
 

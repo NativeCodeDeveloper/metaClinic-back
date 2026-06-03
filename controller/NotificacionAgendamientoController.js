@@ -1,6 +1,54 @@
 import NotificacionAgendamiento from "../services/notificacionAgendamiento.js";
 import ReservaPacientes from "../model/ReservaPacientes.js";
 
+const TIME_ZONE_CHILE = "America/Santiago";
+
+function obtenerPartesFecha(fechaValor) {
+  if (!fechaValor) return null;
+
+  if (fechaValor instanceof Date) {
+    return {
+      year: fechaValor.getUTCFullYear(),
+      month: fechaValor.getUTCMonth() + 1,
+      day: fechaValor.getUTCDate(),
+    };
+  }
+
+  const match = String(fechaValor).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return null;
+
+  return {
+    year: Number(match[1]),
+    month: Number(match[2]),
+    day: Number(match[3]),
+  };
+}
+
+function formatearFechaCita(fechaValor) {
+  const partes = obtenerPartesFecha(fechaValor);
+  if (!partes) return String(fechaValor || "");
+
+  const fechaMediodiaUtc = new Date(Date.UTC(partes.year, partes.month - 1, partes.day, 12, 0, 0));
+  return fechaMediodiaUtc.toLocaleDateString("es-CL", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone: TIME_ZONE_CHILE,
+  });
+}
+
+function normalizarHoraCita(horaValor) {
+  if (!horaValor) return "";
+  return String(horaValor).slice(0, 8);
+}
+
+async function obtenerReservaCitaPorId(id_reserva) {
+  const reservaPacienteClass = new ReservaPacientes();
+  const reservas = await reservaPacienteClass.seleccionarFichasReservadasEspecifica(id_reserva);
+  return Array.isArray(reservas) ? reservas[0] : null;
+}
+
 export default class NotificacionAgendamientoController {
 
   /**
@@ -129,7 +177,6 @@ export default class NotificacionAgendamientoController {
       } = req.body;
 
       const empresa = process.env.NOMBRE_EMPRESA || "Clinica";
-
       if (!id_reserva || !nombrePaciente || !apellidoPaciente || !fechaInicio || !horaInicio) {
         return res.status(400).json({
           ok: false,
@@ -144,13 +191,17 @@ export default class NotificacionAgendamientoController {
       // SOLO enviar correo si la actualización fue exitosa
       if(respuestaBackend && respuestaBackend.affectedRows > 0) {
           console.log("[CONFIRMAR CITA] Reserva confirmada correctamente. ID:", id_reserva);
+          const reservaActualizada = await obtenerReservaCitaPorId(id_reserva);
+          const fechaInicioReal = reservaActualizada?.fechaInicio || fechaInicio;
+          const horaInicioReal = normalizarHoraCita(reservaActualizada?.horaInicio || horaInicio);
+          const fechaCitaFormateada = formatearFechaCita(fechaInicioReal);
 
           // Enviar correo de confirmación al equipo SOLO si se actualizó correctamente
           await NotificacionAgendamiento.enviarCorreoConfirmacionEquipo({
               nombrePaciente,
               apellidoPaciente,
-              fechaInicio,
-              horaInicio,
+              fechaInicio: fechaCitaFormateada,
+              horaInicio: horaInicioReal,
               accion: "CONFIRMADA",
               id_reserva
           });
@@ -191,7 +242,7 @@ export default class NotificacionAgendamientoController {
                 <div class="icon">✅</div>
                 <h1>¡Cita Confirmada!</h1>
                 <p><strong>${nombrePaciente} ${apellidoPaciente}</strong></p>
-                <p>Tu cita para el <strong>${new Date(fechaInicio).toLocaleDateString("es-CL", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</strong> a las <strong>${horaInicio}</strong> ha sido confirmada exitosamente.</p>
+                <p>Tu cita para el <strong>${fechaCitaFormateada}</strong> a las <strong>${horaInicioReal}</strong> ha sido confirmada exitosamente.</p>
                 <p>Hemos notificado a nuestro equipo de tu confirmacion.</p>
                 <p style="margin-top: 30px; color: #6b7280; font-size: 14px;">
                   Nos vemos pronto en ${empresa}.
@@ -404,7 +455,6 @@ export default class NotificacionAgendamientoController {
       } = req.body;
 
       const empresa = process.env.NOMBRE_EMPRESA || "Clinica";
-
       if (!id_reserva || !nombrePaciente || !apellidoPaciente || !fechaInicio || !horaInicio) {
         return res.status(400).json({
           ok: false,
@@ -419,13 +469,17 @@ export default class NotificacionAgendamientoController {
       // SOLO enviar correo si la actualización fue exitosa
       if(respuestaBackend && respuestaBackend.affectedRows > 0) {
           console.log("[ANULAR CITA] Reserva ANULADA correctamente. ID:", id_reserva);
+          const reservaActualizada = await obtenerReservaCitaPorId(id_reserva);
+          const fechaInicioReal = reservaActualizada?.fechaInicio || fechaInicio;
+          const horaInicioReal = normalizarHoraCita(reservaActualizada?.horaInicio || horaInicio);
+          const fechaCitaFormateada = formatearFechaCita(fechaInicioReal);
 
           // Enviar correo de cancelación al equipo SOLO si se actualizó correctamente
           await NotificacionAgendamiento.enviarCorreoConfirmacionEquipo({
             nombrePaciente,
             apellidoPaciente,
-            fechaInicio,
-            horaInicio,
+            fechaInicio: fechaCitaFormateada,
+            horaInicio: horaInicioReal,
             accion: "CANCELADA",
             id_reserva,
           });
@@ -466,7 +520,7 @@ export default class NotificacionAgendamientoController {
                 <div class="icon">❌</div>
                 <h1>Cita Cancelada</h1>
                 <p><strong>${nombrePaciente} ${apellidoPaciente}</strong></p>
-                <p>Tu cita para el <strong>${new Date(fechaInicio).toLocaleDateString("es-CL", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</strong> a las <strong>${horaInicio}</strong> ha sido cancelada.</p>
+                <p>Tu cita para el <strong>${fechaCitaFormateada}</strong> a las <strong>${horaInicioReal}</strong> ha sido cancelada.</p>
                 <p>Hemos notificado a nuestro equipo de tu cancelacion.</p>
                 <p style="margin-top: 30px; color: #6b7280; font-size: 14px;">
                   Esperamos verte pronto en ${empresa}.

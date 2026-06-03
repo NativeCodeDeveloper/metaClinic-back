@@ -266,9 +266,16 @@ async function obtenerReservasParaRecordatorio() {
  * Formatea la fecha para mostrar en el correo
  */
 function formatearFecha(fechaStr) {
-    const fecha = new Date(fechaStr);
+    const fecha = fechaStr instanceof Date
+        ? new Date(Date.UTC(fechaStr.getUTCFullYear(), fechaStr.getUTCMonth(), fechaStr.getUTCDate(), 12, 0, 0))
+        : (() => {
+            const match = String(fechaStr || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+            return match
+        ? new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12, 0, 0))
+        : new Date(fechaStr);
+        })();
     const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    return fecha.toLocaleDateString('es-CL', opciones);
+    return fecha.toLocaleDateString('es-CL', {...opciones, timeZone: 'America/Santiago'});
 }
 
 /**

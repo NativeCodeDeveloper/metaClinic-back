@@ -19,15 +19,37 @@ export default class BloqueoAgenda {
             const conexion = DataBase.getInstance();
             const inicioBloqueo = `${fechaInicio} ${horaInicio}`;
             const finBloqueo = `${fechaFinalizacion} ${horaFinalizacion}`;
+
+            if (fechaFinalizacion < fechaInicio || new Date(`${fechaInicio}T${horaInicio}`) >= new Date(`${fechaFinalizacion}T${horaFinalizacion}`)) {
+                return {rangoInvalido: true};
+            }
+
             const queryPrevia = `
-                SELECT id_bloqueo
-                FROM bloqueoAgenda
-                WHERE id_profesional = ?
-                  AND estado_bloqueoAgenda <> 0
-                  AND CONCAT(fechaInicio, ' ', horaInicio) < ?
-                  AND CONCAT(fechaFinalizacion, ' ', horaFinalizacion) > ?
+                SELECT id FROM (
+                    SELECT id_bloqueo AS id
+                    FROM bloqueoAgenda
+                    WHERE id_profesional = ?
+                      AND estado_bloqueoAgenda <> 0
+                      AND TIMESTAMP(fechaInicio, horaInicio) < ?
+                      AND TIMESTAMP(fechaFinalizacion, horaFinalizacion) > ?
+                    UNION ALL
+                    SELECT id_reserva AS id
+                    FROM reservaPacientes
+                    WHERE id_profesional = ?
+                      AND estadoPeticion <> 0
+                      AND estadoReserva NOT IN ('cancelada', 'anulada')
+                      AND TIMESTAMP(fechaInicio, horaInicio) < ?
+                      AND TIMESTAMP(fechaFinalizacion, horaFinalizacion) > ?
+                ) AS conflictos
             `;
-            const paramsPrevios = [id_profesional, finBloqueo, inicioBloqueo];
+            const paramsPrevios = [
+                id_profesional,
+                finBloqueo,
+                inicioBloqueo,
+                id_profesional,
+                finBloqueo,
+                inicioBloqueo,
+            ];
 
             const respuestaBackendVerificadora = await conexion.ejecutarQuery(queryPrevia, paramsPrevios);
             let disponibilidadHorarioBloqueo;

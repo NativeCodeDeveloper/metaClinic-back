@@ -12,9 +12,23 @@ export default class BloqueoAgendaController {
             console.log(req.body);
             console.log(" ");
 
+            if (!id_profesional || !fechaInicio || !horaInicio || !fechaFinalizacion || !horaFinalizacion || !motivo) {
+                return res.status(400).send({message : "sindata"});
+            }
+
+            const inicioBloqueo = new Date(`${fechaInicio}T${horaInicio}`);
+            const finBloqueo = new Date(`${fechaFinalizacion}T${horaFinalizacion}`);
+
+            if (fechaFinalizacion < fechaInicio || inicioBloqueo >= finBloqueo) {
+                return res.status(400).send({message : "rangoInvalido"});
+            }
+
             const BloqueoAgendaClass = new BloqueoAgenda();
             const respuestaModel = await BloqueoAgendaClass.insertarBloqueoAgendaModel(id_profesional,fechaInicio,horaInicio,fechaFinalizacion,horaFinalizacion,motivo);
 
+            if(respuestaModel?.rangoInvalido){
+                return res.status(400).send({message : "rangoInvalido"});
+            }
             if(Array.isArray(respuestaModel) && respuestaModel.length === 0){
                 return res.status(200).send({message : "sindisponibilidad"});
             }

@@ -1,3 +1,16 @@
+function normalizarFechaCorreo(fechaValor) {
+    if (!fechaValor) return "";
+    if (fechaValor instanceof Date) {
+        return fechaValor.toISOString().slice(0, 10);
+    }
+    return String(fechaValor).slice(0, 10);
+}
+
+function normalizarHoraCorreo(horaValor) {
+    if (!horaValor) return "";
+    return String(horaValor).slice(0, 8);
+}
+
 export default class NotificacionAgendamiento {
     static async enviarCorreoConfirmacionReserva({
                                                      to,
@@ -139,6 +152,131 @@ export default class NotificacionAgendamiento {
         const messageId = data?.messageId || data?.messageIds?.[0] || null;
         console.log(
             "[MAIL] Solicitud aceptada por Brevo a:",
+            to,
+            "| id_reserva:",
+            id_reserva,
+            "| from:",
+            fromEmail,
+            messageId ? `| messageId: ${messageId}` : ""
+        );
+    }
+
+    static async enviarCorreoActualizacionReserva({
+                                                     to,
+                                                     nombrePaciente,
+                                                     apellidoPaciente,
+                                                     fechaInicioAnterior,
+                                                     horaInicioAnterior,
+                                                     fechaFinalizacionAnterior,
+                                                     horaFinalizacionAnterior,
+                                                     fechaInicio,
+                                                     horaInicio,
+                                                     fechaFinalizacion,
+                                                     horaFinalizacion,
+                                                     id_reserva
+                                                 }) {
+        const { BREVO_API_KEY, NOMBRE_EMPRESA } = process.env;
+
+        if (!BREVO_API_KEY) {
+            console.warn("[MAIL ACTUALIZACION] BREVO_API_KEY no configurada. Correo no enviado.");
+            return;
+        }
+
+        const emailOk = typeof to === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to);
+        if (!emailOk) {
+            console.warn("[MAIL ACTUALIZACION] Email invalido:", to, "Correo no enviado.");
+            return;
+        }
+
+        const fromEmail = process.env.CORREO_REMITENTE || "desarrollo.native.code@gmail.com";
+        const fromName = NOMBRE_EMPRESA || "Sistema de Agendamiento";
+
+        if (!fromEmail) {
+            console.warn("[MAIL ACTUALIZACION] CORREO_REMITENTE no configurado. Correo no enviado.");
+            return;
+        }
+
+        const fechaInicioAnteriorTexto = normalizarFechaCorreo(fechaInicioAnterior);
+        const horaInicioAnteriorTexto = normalizarHoraCorreo(horaInicioAnterior);
+        const fechaFinalAnteriorTexto = normalizarFechaCorreo(fechaFinalizacionAnterior);
+        const horaFinalAnteriorTexto = normalizarHoraCorreo(horaFinalizacionAnterior);
+        const fechaInicioTexto = normalizarFechaCorreo(fechaInicio);
+        const horaInicioTexto = normalizarHoraCorreo(horaInicio);
+        const fechaFinalTexto = normalizarFechaCorreo(fechaFinalizacion);
+        const horaFinalTexto = normalizarHoraCorreo(horaFinalizacion);
+
+        const subject = `Tu cita en ${fromName} ha sido actualizada`;
+        const text =
+            `Hola ${nombrePaciente} ${apellidoPaciente},\n\n` +
+            `Te informamos que el horario de tu cita ha sido actualizado.\n\n` +
+            `Horario anterior:\n` +
+            `• Inicio: ${fechaInicioAnteriorTexto} ${horaInicioAnteriorTexto}\n` +
+            `• Termino: ${fechaFinalAnteriorTexto} ${horaFinalAnteriorTexto}\n\n` +
+            `Nuevo horario:\n` +
+            `• Inicio: ${fechaInicioTexto} ${horaInicioTexto}\n` +
+            `• Termino: ${fechaFinalTexto} ${horaFinalTexto}\n\n` +
+            `Si tienes dudas, responde este correo o contactanos directamente.\n\n` +
+            `Saludos, ${fromName}.`;
+
+        const html = `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111; max-width: 600px; margin: 0 auto;">
+        <div style="background: #0ea5e9; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+          <h2 style="margin: 0;">Tu cita ha sido actualizada</h2>
+        </div>
+        <div style="padding: 20px; background: #ffffff; border: 1px solid #e5e7eb; border-top: none;">
+          <p>Hola <b>${nombrePaciente} ${apellidoPaciente}</b>,</p>
+          <p>Te informamos que el horario de tu cita ha sido actualizado. A continuacion el detalle:</p>
+          <table style="width: 100%; border-collapse: collapse; margin: 18px 0;">
+            <tr>
+              <td style="padding: 12px; background: #f8fafc; border: 1px solid #e5e7eb;"><b>Horario anterior</b></td>
+              <td style="padding: 12px; background: #f8fafc; border: 1px solid #e5e7eb;">${fechaInicioAnteriorTexto} ${horaInicioAnteriorTexto} - ${fechaFinalAnteriorTexto} ${horaFinalAnteriorTexto}</td>
+            </tr>
+            <tr>
+              <td style="padding: 12px; background: #ecfeff; border: 1px solid #bae6fd;"><b>Nuevo horario</b></td>
+              <td style="padding: 12px; background: #ecfeff; border: 1px solid #bae6fd;">${fechaInicioTexto} ${horaInicioTexto} - ${fechaFinalTexto} ${horaFinalTexto}</td>
+            </tr>
+          </table>
+          <p style="font-size: 13px; color: #6b7280;">Si tienes dudas, responde este correo o contactanos directamente.</p>
+        </div>
+        <div style="background: #f9fafb; padding: 15px; text-align: center; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+          <p style="margin: 0; color: #667eea; font-weight: bold; font-size: 14px;">${fromName}</p>
+        </div>
+      </div>
+    `;
+
+        const payload = {
+            sender: { name: fromName, email: fromEmail },
+            to: [{ email: to }],
+            subject,
+            textContent: text,
+            htmlContent: html
+        };
+
+        if (typeof fetch !== "function") {
+            console.warn("[MAIL ACTUALIZACION] Tu Node no tiene fetch (requiere Node 18+). Correo no enviado.");
+            return;
+        }
+
+        const resp = await fetch("https://api.brevo.com/v3/smtp/email", {
+            method: "POST",
+            headers: {
+                accept: "application/json",
+                "content-type": "application/json",
+                "api-key": BREVO_API_KEY
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!resp.ok) {
+            const errText = await resp.text().catch(() => "");
+            console.error("[MAIL ACTUALIZACION] Brevo error:", resp.status, errText);
+            return;
+        }
+
+        const data = await resp.json().catch(() => null);
+        const messageId = data?.messageId || data?.messageIds?.[0] || null;
+        console.log(
+            "[MAIL ACTUALIZACION] Solicitud aceptada por Brevo a:",
             to,
             "| id_reserva:",
             id_reserva,

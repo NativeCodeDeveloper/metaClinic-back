@@ -3,6 +3,19 @@ import Pacientes from "../model/Pacientes.js";
 import NotificacionAgendamiento from "../services/notificacionAgendamiento.js";
 import { notificacionAgendamiento } from "../services/notificacionWhatsApp.js";
 
+function normalizarFechaReserva(fechaValor) {
+    if (!fechaValor) return "";
+    if (fechaValor instanceof Date) {
+        return fechaValor.toISOString().slice(0, 10);
+    }
+    return String(fechaValor).slice(0, 10);
+}
+
+function normalizarHoraReserva(horaValor) {
+    if (!horaValor) return "";
+    return String(horaValor).slice(0, 8);
+}
+
 export default class ReservaPacienteController {
     constructor() {
     }
@@ -190,6 +203,8 @@ export default class ReservaPacienteController {
             }
 
             const claseReservaPaciente = new ReservaPacientes();
+            const reservasAntes = await claseReservaPaciente.seleccionarFichasReservadasEspecifica(id_reserva);
+            const reservaAnterior = Array.isArray(reservasAntes) ? reservasAntes[0] : null;
             const resultadoQuery = await claseReservaPaciente.actualizarReserva(nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, estadoReserva, id_profesional, id_reserva);
 
             if (resultadoQuery?.conflicto) {
@@ -197,6 +212,32 @@ export default class ReservaPacienteController {
             }
 
             if (resultadoQuery.affectedRows > 0) {
+                const cambioHorario = reservaAnterior && (
+                    normalizarFechaReserva(reservaAnterior.fechaInicio) !== normalizarFechaReserva(fechaInicio) ||
+                    normalizarHoraReserva(reservaAnterior.horaInicio) !== normalizarHoraReserva(horaInicio) ||
+                    normalizarFechaReserva(reservaAnterior.fechaFinalizacion) !== normalizarFechaReserva(fechaFinalizacion) ||
+                    normalizarHoraReserva(reservaAnterior.horaFinalizacion) !== normalizarHoraReserva(horaFinalizacion)
+                );
+
+                if (cambioHorario) {
+                    NotificacionAgendamiento.enviarCorreoActualizacionReserva({
+                        to: email || reservaAnterior.email,
+                        nombrePaciente,
+                        apellidoPaciente,
+                        fechaInicioAnterior: reservaAnterior.fechaInicio,
+                        horaInicioAnterior: reservaAnterior.horaInicio,
+                        fechaFinalizacionAnterior: reservaAnterior.fechaFinalizacion,
+                        horaFinalizacionAnterior: reservaAnterior.horaFinalizacion,
+                        fechaInicio,
+                        horaInicio,
+                        fechaFinalizacion,
+                        horaFinalizacion,
+                        id_reserva
+                    }).catch(err => {
+                        console.error("[MAIL ACTUALIZACION] Error:", err.message);
+                    });
+                }
+
                 return res.status(200).json({message: true});
             } else {
                 return res.status(200).json({message: false});

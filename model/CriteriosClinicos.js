@@ -65,7 +65,8 @@ export default class CriteriosClinicos{
         try{
             const conexion = DataBase.getInstance();
             const query = `
-            SELECT * FROM criterios_clinicos WHERE id_criterio = ?`;
+            SELECT * FROM criterios_clinicos
+            WHERE id_criterio = ? AND estado <> 0`;
             const params = [id_criterio]
 
             const respuestaQuery = await conexion.ejecutarQuery(query,params);
@@ -89,7 +90,6 @@ export default class CriteriosClinicos{
         descripcion,
         valor_tipo,
         excluye_glp1,
-        fecha_creacion,
         id_criterio
     ){
         try{
@@ -99,12 +99,10 @@ export default class CriteriosClinicos{
                     nombre = ?,
                     descripcion= ?,
                     valor_tipo= ?,
-            excluye_glp1= ?,
-        fecha_creacion = ?
-        
-        WHERE id_criterio = ?
+                    excluye_glp1= ?
+            WHERE id_criterio = ? AND estado <> 0
             `;
-            const params = [nombre, descripcion, valor_tipo, excluye_glp1, fecha_creacion, id_criterio];
+            const params = [nombre, descripcion, valor_tipo, excluye_glp1, id_criterio];
 
 
             const respuestaQuery = await conexion.ejecutarQuery(query,params);
@@ -130,7 +128,7 @@ export default class CriteriosClinicos{
             const query = `
             UPDATE criterios_clinicos SET
              estado = 0 
-        WHERE id_criterio = ?
+            WHERE id_criterio = ? AND estado <> 0
             `;
             const params = [id_criterio]
 

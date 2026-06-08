@@ -89,12 +89,11 @@ export default class CriteriosClinicosController {
                 descripcion,
                 valor_tipo,
                 excluye_glp1,
-                fecha_creacion,
                 id_criterio
             } = req.body;
 
             console.log(req.body);
-            if(!nombre || !descripcion || !valor_tipo || !fecha_creacion || !id_criterio){
+            if(!nombre || !descripcion || !valor_tipo || !id_criterio){
                 return res.status(400).send({
                     message: `sindata`})
             }
@@ -105,7 +104,6 @@ export default class CriteriosClinicosController {
                 descripcion,
                 valor_tipo,
                 excluye_glp1,
-                fecha_creacion,
                 id_criterio
         );
             if(resultadoModel.affectedRows > 0){

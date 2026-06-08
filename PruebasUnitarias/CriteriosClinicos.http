@@ -86,6 +86,7 @@ Content-Type: application/json
 ###############################################
 # 4. ACTUALIZAR CRITERIO
 ###############################################
+# Pruebas ajustadas: fecha_creacion es administrada por la base de datos y no se modifica en el CRUD.
 
 ### 4a. Actualizar criterio - caso exitoso
 POST http://localhost:3001/criteriosClinicos/actualizarCriterio
@@ -96,7 +97,6 @@ Content-Type: application/json
   "descripcion": "Paciente en estado de gestacion - contraindicacion absoluta",
   "valor_tipo": "negativo",
   "excluye_glp1": 1,
-  "fecha_creacion": "2025-10-04 14:30:00",
   "id_criterio": 1
 }
 
@@ -108,8 +108,7 @@ Content-Type: application/json
   "nombre": "Embarazo actualizado",
   "descripcion": "Descripcion actualizada",
   "valor_tipo": "negativo",
-  "excluye_glp1": 1,
-  "fecha_creacion": "2025-10-04 14:30:00"
+  "excluye_glp1": 1
 }
 
 ### 4c. Actualizar criterio - sin nombre (debe retornar 400)
@@ -120,7 +119,6 @@ Content-Type: application/json
   "descripcion": "Descripcion actualizada",
   "valor_tipo": "negativo",
   "excluye_glp1": 1,
-  "fecha_creacion": "2025-10-04 14:30:00",
   "id_criterio": 1
 }
 
@@ -155,6 +153,14 @@ Content-Type: application/json
 
 {
   "id_criterio": 999999
+}
+
+### 5d. Eliminar criterio ya inactivo (debe retornar 200 con message false)
+POST http://localhost:3001/criteriosClinicos/eliminarCriterio
+Content-Type: application/json
+
+{
+  "id_criterio": 1
 }
 
 

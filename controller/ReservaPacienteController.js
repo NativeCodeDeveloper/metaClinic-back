@@ -341,9 +341,13 @@ export default class ReservaPacienteController {
 
             console.log(req.body);
 
-            if (!nombrePaciente || !apellidoPaciente || !rut || !telefono || !email || !fechaInicio || !horaInicio || !fechaFinalizacion || !horaFinalizacion || !estadoReserva || !id_profesional) {
+            if (!nombrePaciente || !apellidoPaciente || !rut || !telefono || !fechaInicio || !horaInicio || !fechaFinalizacion || !horaFinalizacion || !estadoReserva || !id_profesional) {
                 return res.status(400).send({message: "sindata"})
             }
+
+            const correoReserva = typeof email === "string" && email.trim()
+                ? email.trim()
+                : null;
 
             const claseReservaPaciente = new ReservaPacientes();
 
@@ -352,7 +356,7 @@ export default class ReservaPacienteController {
                 return res.status(400).send({message: "conflicto"})
             } else {
 
-                const resultadoQuery = await claseReservaPaciente.insertarReservaPaciente(nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, estadoReserva, id_profesional)
+                const resultadoQuery = await claseReservaPaciente.insertarReservaPaciente(nombrePaciente, apellidoPaciente, rut, telefono, correoReserva, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, estadoReserva, id_profesional)
 
                 if (resultadoQuery?.conflicto) {
                     return res.status(400).send({message: "conflicto"})
@@ -361,22 +365,24 @@ export default class ReservaPacienteController {
                 if (resultadoQuery.affectedRows > 0) {
                     // Enviar correo de confirmación (no bloquear la respuesta si falla)
 
-                    try {
-                        await NotificacionAgendamiento.enviarCorreoConfirmacionReserva({
-                            to: email,
-                            nombrePaciente,
-                            apellidoPaciente,
-                            rut,
-                            telefono,
-                            fechaInicio,
-                            horaInicio,
-                            fechaFinalizacion,
-                            horaFinalizacion,
-                            estadoReserva,
-                            id_reserva: resultadoQuery.insertId
-                        });
-                    } catch (err) {
-                        console.error("[MAIL] Error:", err.message);
+                    if (correoReserva) {
+                        try {
+                            await NotificacionAgendamiento.enviarCorreoConfirmacionReserva({
+                                to: correoReserva,
+                                nombrePaciente,
+                                apellidoPaciente,
+                                rut,
+                                telefono,
+                                fechaInicio,
+                                horaInicio,
+                                fechaFinalizacion,
+                                horaFinalizacion,
+                                estadoReserva,
+                                id_reserva: resultadoQuery.insertId
+                            });
+                        } catch (err) {
+                            console.error("[MAIL] Error:", err.message);
+                        }
                     }
 
 
@@ -436,9 +442,13 @@ export default class ReservaPacienteController {
 
             console.log(req.body);
 
-            if (!nombrePaciente || !apellidoPaciente || !rut || !telefono || !email || !fechaInicio || !horaInicio || !fechaFinalizacion || !horaFinalizacion || !estadoReserva || !id_profesional) {
+            if (!nombrePaciente || !apellidoPaciente || !rut || !telefono || !fechaInicio || !horaInicio || !fechaFinalizacion || !horaFinalizacion || !estadoReserva || !id_profesional) {
                 return res.status(400).send({message: "sindata"})
             }
+
+            const correoReserva = typeof email === "string" && email.trim()
+                ? email.trim()
+                : null;
 
 
             let nombre = nombrePaciente;
@@ -473,7 +483,7 @@ export default class ReservaPacienteController {
                 return res.status(400).send({message: "conflicto"})
             } else {
 
-                const resultadoQuery = await claseReservaPaciente.insertarReservaPaciente(nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, estadoReserva, id_profesional)
+                const resultadoQuery = await claseReservaPaciente.insertarReservaPaciente(nombrePaciente, apellidoPaciente, rut, telefono, correoReserva, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, estadoReserva, id_profesional)
 
                 if (resultadoQuery?.conflicto) {
                     return res.status(400).send({message: "conflicto"})
@@ -481,22 +491,24 @@ export default class ReservaPacienteController {
 
                 if (resultadoQuery.affectedRows > 0) {
                     // Enviar correo de confirmación al paciente
-                    try {
-                        await NotificacionAgendamiento.enviarCorreoConfirmacionReserva({
-                            to: email,
-                            nombrePaciente,
-                            apellidoPaciente,
-                            rut,
-                            telefono,
-                            fechaInicio,
-                            horaInicio,
-                            fechaFinalizacion,
-                            horaFinalizacion,
-                            estadoReserva,
-                            id_reserva: resultadoQuery.insertId
-                        });
-                    } catch (err) {
-                        console.error("[MAIL] Error:", err.message);
+                    if (correoReserva) {
+                        try {
+                            await NotificacionAgendamiento.enviarCorreoConfirmacionReserva({
+                                to: correoReserva,
+                                nombrePaciente,
+                                apellidoPaciente,
+                                rut,
+                                telefono,
+                                fechaInicio,
+                                horaInicio,
+                                fechaFinalizacion,
+                                horaFinalizacion,
+                                estadoReserva,
+                                id_reserva: resultadoQuery.insertId
+                            });
+                        } catch (err) {
+                            console.error("[MAIL] Error:", err.message);
+                        }
                     }
 
                     // Enviar correo de notificación al equipo

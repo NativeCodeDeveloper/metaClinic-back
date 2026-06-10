@@ -44,6 +44,25 @@ export default class Pacientes {
 
         try {
             await conexion.ejecutarQuery(query);
+            const columnas = await conexion.ejecutarQuery(`
+                SELECT COLUMN_NAME
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'portal_paciente_checkin'
+                  AND COLUMN_NAME IN ('antojos', 'signos_biliares', 'deshidratacion')
+            `);
+            const existentes = new Set((columnas || []).map((columna) => columna.COLUMN_NAME));
+            const faltantes = [
+                ["antojos", "VARCHAR(120) NULL AFTER hambre_nocturna"],
+                ["signos_biliares", "TINYINT(1) NOT NULL DEFAULT 0 AFTER antojos"],
+                ["deshidratacion", "TINYINT(1) NOT NULL DEFAULT 0 AFTER signos_biliares"],
+            ];
+
+            for (const [nombre, definicion] of faltantes) {
+                if (!existentes.has(nombre)) {
+                    await conexion.ejecutarQuery(`ALTER TABLE portal_paciente_checkin ADD COLUMN ${nombre} ${definicion}`);
+                }
+            }
         } catch (error) {
             throw new Error("Problema al asegurar tabla de revision de alertas desde Pacientes.js");
         }
@@ -61,6 +80,9 @@ export default class Pacientes {
                 checkin_alerta.constipacion AS checkin_alerta_constipacion,
                 checkin_alerta.dolor_abdominal AS checkin_alerta_dolor_abdominal,
                 checkin_alerta.hambre_nocturna AS checkin_alerta_hambre_nocturna,
+                checkin_alerta.antojos AS checkin_alerta_antojos,
+                checkin_alerta.signos_biliares AS checkin_alerta_signos_biliares,
+                checkin_alerta.deshidratacion AS checkin_alerta_deshidratacion,
                 COALESCE(checkin_alerta_revision.revisada, 0) AS checkin_alerta_revisada,
                 CASE
                     WHEN checkin_alerta.id_checkin IS NOT NULL
@@ -72,6 +94,9 @@ export default class Pacientes {
                         OR LOWER(COALESCE(checkin_alerta.constipacion, '')) NOT IN ('', 'ninguna', 'ninguno', 'normal', 'no', 'sin sintomas', 'sin síntoma', 'sin sintoma', 'ausente')
                         OR LOWER(COALESCE(checkin_alerta.dolor_abdominal, '')) NOT IN ('', 'ninguna', 'ninguno', 'normal', 'no', 'sin sintomas', 'sin síntoma', 'sin sintoma', 'ausente')
                         OR LOWER(COALESCE(checkin_alerta.hambre_nocturna, '')) NOT IN ('', 'ninguna', 'ninguno', 'normal', 'no', 'sin sintomas', 'sin síntoma', 'sin sintoma', 'ausente')
+                        OR LOWER(COALESCE(checkin_alerta.antojos, '')) NOT IN ('', 'ninguna', 'ninguno', 'normal', 'no', 'sin sintomas', 'sin síntoma', 'sin sintoma', 'ausente')
+                        OR COALESCE(checkin_alerta.signos_biliares, 0) = 1
+                        OR COALESCE(checkin_alerta.deshidratacion, 0) = 1
                     )
                     THEN 1
                     ELSE 0

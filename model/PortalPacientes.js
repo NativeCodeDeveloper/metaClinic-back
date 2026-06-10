@@ -48,6 +48,29 @@ export default class PortalPacientes {
         }
     }
 
+    async ensureCheckinDetailColumns() {
+        const conexion = DataBase.getInstance();
+        const columnas = await conexion.ejecutarQuery(`
+            SELECT COLUMN_NAME
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'portal_paciente_checkin'
+              AND COLUMN_NAME IN ('antojos', 'signos_biliares', 'deshidratacion')
+        `);
+        const existentes = new Set((columnas || []).map((columna) => columna.COLUMN_NAME));
+        const faltantes = [
+            ["antojos", "VARCHAR(120) NULL AFTER hambre_nocturna"],
+            ["signos_biliares", "TINYINT(1) NOT NULL DEFAULT 0 AFTER antojos"],
+            ["deshidratacion", "TINYINT(1) NOT NULL DEFAULT 0 AFTER signos_biliares"],
+        ];
+
+        for (const [nombre, definicion] of faltantes) {
+            if (!existentes.has(nombre)) {
+                await conexion.ejecutarQuery(`ALTER TABLE portal_paciente_checkin ADD COLUMN ${nombre} ${definicion}`);
+            }
+        }
+    }
+
     async seleccionarPacientePortalPorCorreo(correo) {
         const conexion = DataBase.getInstance();
         const query = `
@@ -149,6 +172,7 @@ export default class PortalPacientes {
     }
 
     async seleccionarCheckinSemanalPaciente(id_paciente, semana_clave) {
+        await this.ensureCheckinDetailColumns();
         const conexion = DataBase.getInstance();
         const query = `
             SELECT *
@@ -215,9 +239,13 @@ export default class PortalPacientes {
         constipacion,
         dolor_abdominal,
         hambre_nocturna,
+        antojos,
+        signos_biliares,
+        deshidratacion,
         observaciones_paciente
     ) {
         await this.ensureAlertaRevisionTable();
+        await this.ensureCheckinDetailColumns();
         const conexion = DataBase.getInstance();
         const query = `
             UPDATE portal_paciente_checkin
@@ -235,6 +263,9 @@ export default class PortalPacientes {
                 constipacion = ?,
                 dolor_abdominal = ?,
                 hambre_nocturna = ?,
+                antojos = ?,
+                signos_biliares = ?,
+                deshidratacion = ?,
                 observaciones_paciente = ?,
                 estado_checkin = 'completado',
                 fecha_registro = NOW(),
@@ -255,6 +286,9 @@ export default class PortalPacientes {
             constipacion,
             dolor_abdominal,
             hambre_nocturna,
+            antojos,
+            signos_biliares ? 1 : 0,
+            deshidratacion ? 1 : 0,
             observaciones_paciente,
             id_checkin
         ];
@@ -362,6 +396,7 @@ export default class PortalPacientes {
 
     async seleccionarAlertasCheckinPacientes() {
         await this.ensureAlertaRevisionTable();
+        await this.ensureCheckinDetailColumns();
         const conexion = DataBase.getInstance();
         const query = `
             SELECT
@@ -374,6 +409,9 @@ export default class PortalPacientes {
                 checkin.constipacion,
                 checkin.dolor_abdominal,
                 checkin.hambre_nocturna,
+                checkin.antojos,
+                checkin.signos_biliares,
+                checkin.deshidratacion,
                 COALESCE(revision.revisada, 0) AS checkin_alerta_revisada,
                 CASE
                     WHEN COALESCE(revision.revisada, 0) = 0 AND (
@@ -383,6 +421,9 @@ export default class PortalPacientes {
                         OR LOWER(COALESCE(checkin.constipacion, '')) NOT IN ('', 'ninguna', 'ninguno', 'normal', 'no', 'sin sintomas', 'sin síntoma', 'sin sintoma', 'ausente')
                         OR LOWER(COALESCE(checkin.dolor_abdominal, '')) NOT IN ('', 'ninguna', 'ninguno', 'normal', 'no', 'sin sintomas', 'sin síntoma', 'sin sintoma', 'ausente')
                         OR LOWER(COALESCE(checkin.hambre_nocturna, '')) NOT IN ('', 'ninguna', 'ninguno', 'normal', 'no', 'sin sintomas', 'sin síntoma', 'sin sintoma', 'ausente')
+                        OR LOWER(COALESCE(checkin.antojos, '')) NOT IN ('', 'ninguna', 'ninguno', 'normal', 'no', 'sin sintomas', 'sin síntoma', 'sin sintoma', 'ausente')
+                        OR COALESCE(checkin.signos_biliares, 0) = 1
+                        OR COALESCE(checkin.deshidratacion, 0) = 1
                     )
                     THEN 1
                     ELSE 0

@@ -152,6 +152,83 @@ IMPORTANTE
 
  * */
 
+async function confirmarReservaPagada(preference_id) {
+    if (!preference_id) {
+        return {received: true, preference_id_missing: true};
+    }
+
+    const reservaPacientesClass = new ReservaPacientes();
+    const resultadoQuery = await reservaPacientesClass.cambiarReservaPagadaVisible(preference_id);
+
+    if (resultadoQuery?.conflicto) {
+        console.warn("Pago aprobado, pero el horario ya esta ocupado para preference_id:", preference_id);
+        return {received: true, conflicto_horario: true};
+    }
+
+    if (!resultadoQuery || resultadoQuery.affectedRows <= 0) {
+        console.log("No hay una reserva pendiente asociada al preference_id:", preference_id);
+        return {received: true};
+    }
+
+    const dataCliente = await reservaPacientesClass.seleccionarFichasReservadasPreference(preference_id);
+    const reserva = Array.isArray(dataCliente) && dataCliente.length > 0 ? dataCliente[0] : null;
+
+    if (!reserva) {
+        console.warn("No se encontro la reserva confirmada para preference_id:", preference_id);
+        return {received: true};
+    }
+
+    try {
+        const instanciaPacientes = new Pacientes();
+        await instanciaPacientes.insertPacientemp(
+            reserva.nombrePaciente,
+            reserva.apellidoPaciente,
+            reserva.rut,
+            null,
+            '---',
+            0,
+            reserva.telefono ?? 'NO INGRESADO',
+            reserva.email ?? 'NO INGRESADO',
+            '---',
+            '---'
+        );
+    } catch (errPaciente) {
+        console.error("Error insertando paciente desde Mercado Pago:", errPaciente);
+    }
+
+    try {
+        await NotificacionAgendamiento.enviarCorreoConfirmacionReserva({
+            to: reserva.email,
+            nombrePaciente: reserva.nombrePaciente,
+            apellidoPaciente: reserva.apellidoPaciente,
+            rut: reserva.rut,
+            telefono: reserva.telefono,
+            fechaInicio: reserva.fechaInicio,
+            horaInicio: reserva.horaInicio,
+            fechaFinalizacion: reserva.fechaFinalizacion,
+            horaFinalizacion: reserva.horaFinalizacion,
+            estadoReserva: 'reservada',
+            id_reserva: reserva.id_reserva
+        });
+    } catch (errMailPaciente) {
+        console.error('Error enviando correo de reserva pagada al paciente:', errMailPaciente);
+    }
+
+    try {
+        await NotificacionAgendamiento.enviarCorreoConfirmacionEquipo({
+            nombrePaciente: reserva.nombrePaciente,
+            apellidoPaciente: reserva.apellidoPaciente,
+            fechaInicio: reserva.fechaInicio,
+            horaInicio: reserva.horaInicio,
+            accion: 'AGENDADA',
+            id_reserva: reserva.id_reserva
+        });
+    } catch (errMailEquipo) {
+        console.error('Error notificando al equipo sobre la reserva pagada:', errMailEquipo);
+    }
+
+    return {received: true, reserva_confirmada: true};
+}
 
 export const recibirPago = async (req, res) => {
     const ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
@@ -179,8 +256,19 @@ export const recibirPago = async (req, res) => {
                 },
             });
 
+            if (!resp.ok) {
+                const txt = await resp.text();
+                console.error('Error consultando payment:', resp.status, txt);
+                return res.status(200).json({received: true, lookup_error: true});
+            }
+
             const payment = await resp.json();
-            return res.status(200).json({ received: true });
+            if (payment.status !== 'approved') {
+                return res.status(200).json({received: true, pago_aprobado: false});
+            }
+
+            const resultado = await confirmarReservaPagada(payment.preference_id);
+            return res.status(200).json(resultado);
         }
 
         // 2) CASO MERCHANT_ORDER
@@ -219,93 +307,8 @@ export const recibirPago = async (req, res) => {
                 return res.status(200).json({ received: true, pago_aprobado: false });
             }
 
-            try {
-                // --- CAMBIAR ESTADO DE LA RESERVA A "reservada" ---
-                const reservaPacientesClass = new ReservaPacientes();
-                const resultadoQuery = await reservaPacientesClass.cambiarReservaPagadaVisible(preference_id);
-
-                if (resultadoQuery?.conflicto) {
-                    console.warn("--------> PAGO APROBADO, PERO HORARIO YA OCUPADO para preference_id:", preference_id);
-                    return res.status(200).json({ received: true, conflicto_horario: true });
-                }
-
-                if (resultadoQuery && resultadoQuery.affectedRows > 0) {
-                    console.log("--------> RESERVA ACTUALIZADA A 'reservada' para preference_id:", preference_id);
-
-                    // Obtener datos de la reserva para enviar correos
-                    const dataCliente = await reservaPacientesClass.seleccionarFichasReservadasPreference(preference_id);
-                    const reserva = Array.isArray(dataCliente) && dataCliente.length > 0 ? dataCliente[0] : null;
-
-                    if (reserva) {
-                        // --- INSERTAR PACIENTE ---
-                        try {
-                            const instanciaPacientes = new Pacientes();
-                            await instanciaPacientes.insertPacientemp(
-                                reserva.nombrePaciente,
-                                reserva.apellidoPaciente,
-                                reserva.rut,
-                                null,
-                                '---',
-                                0,
-                                reserva.telefono ?? 'NO INGRESADO',
-                                reserva.email ?? 'NO INGRESADO',
-                                '---',
-                                '---'
-                            );
-                            console.log("Paciente insertado/verificado para:", reserva.rut);
-                        } catch (errPaciente) {
-                            console.error("Error insertando paciente:", errPaciente);
-                        }
-
-                        // --- ENVIAR CORREO DE AGENDAMIENTO AL PACIENTE ---
-                        try {
-                            await NotificacionAgendamiento.enviarCorreoConfirmacionReserva({
-                                to: reserva.email,
-                                nombrePaciente: reserva.nombrePaciente,
-                                apellidoPaciente: reserva.apellidoPaciente,
-                                rut: reserva.rut,
-                                telefono: reserva.telefono,
-                                fechaInicio: reserva.fechaInicio,
-                                horaInicio: reserva.horaInicio,
-                                fechaFinalizacion: reserva.fechaFinalizacion,
-                                horaFinalizacion: reserva.horaFinalizacion,
-                                estadoReserva: 'reservada',
-                                id_reserva: reserva.id_reserva
-                            });
-                            console.log('Correo de agendamiento enviado al paciente:', reserva.email);
-                        } catch (errMailPaciente) {
-                            console.error('Error enviando correo de agendamiento al paciente:', errMailPaciente);
-                        }
-
-                        // --- NOTIFICAR AL EQUIPO ---
-                        try {
-                            await NotificacionAgendamiento.enviarCorreoConfirmacionEquipo({
-                                nombrePaciente: reserva.nombrePaciente,
-                                apellidoPaciente: reserva.apellidoPaciente,
-                                fechaInicio: reserva.fechaInicio,
-                                horaInicio: reserva.horaInicio,
-                                accion: 'AGENDADA',
-                                id_reserva: reserva.id_reserva
-                            });
-                            console.log('Notificacion enviada al equipo para reserva:', reserva.id_reserva);
-                        } catch (errMailEquipo) {
-                            console.error('Error enviando notificacion al equipo:', errMailEquipo);
-                        }
-                    } else {
-                        console.warn('No se encontro reserva para preference_id:', preference_id);
-                    }
-
-                    return res.status(200).json({ received: true });
-
-                } else {
-                    console.log("--------> NO HAY RESERVA ASOCIADA AL preference_id:", preference_id);
-                    return res.status(200).json({ received: true });
-                }
-
-            } catch (error) {
-                console.error('Error al validar preference_id:', error);
-                return res.status(200).json({ received: true, error: true });
-            }
+            const resultado = await confirmarReservaPagada(preference_id);
+            return res.status(200).json(resultado);
         }
 
         // 3) CUALQUIER OTRO TIPO

@@ -28,7 +28,7 @@ return res.redirect(`${FRONTEND}/pagoRechazado`);
 });
 
 router.get('/pending', (req, res) => {
- return res.redirect(`${FRONTEND}/pagoPendiente`);
+ return res.redirect(`${FRONTEND}/pagoEnProceso`);
 });
 
 

@@ -84,12 +84,21 @@ function buildAutomaticFeedback(checkin) {
         ["constipación", checkin.constipacion],
         ["dolor abdominal", checkin.dolor_abdominal],
         ["hambre nocturna", checkin.hambre_nocturna],
+        ["antojos", checkin.antojos],
     ].filter(([, value]) => isSymptomAlert(value));
 
     if (sintomasConAlerta.length > 0) {
         hallazgos.push(
             `registraste síntomas para ${sintomasConAlerta.map(([label]) => label).join(", ")}`
         );
+    }
+
+    if (checkin.signos_biliares) {
+        hallazgos.push("marcaste signos biliares que requieren revisión");
+    }
+
+    if (checkin.deshidratacion) {
+        hallazgos.push("marcaste signos de deshidratación");
     }
 
     if (hallazgos.length === 0) {
@@ -134,11 +143,20 @@ function getCheckinAlertReasons(checkin) {
         ["Constipación", checkin.constipacion],
         ["Dolor abdominal", checkin.dolor_abdominal],
         ["Hambre nocturna", checkin.hambre_nocturna],
+        ["Antojos / Cravings", checkin.antojos],
     ].forEach(([label, value]) => {
         if (isSymptomAlert(value)) {
             reasons.push(`${label}: ${value}`);
         }
     });
+
+    if (checkin.signos_biliares) {
+        reasons.push("Signos biliares informados por el paciente");
+    }
+
+    if (checkin.deshidratacion) {
+        reasons.push("Signos de deshidratación informados por el paciente");
+    }
 
     return reasons;
 }
@@ -389,6 +407,9 @@ export default class PortalPacientesController {
                 constipacion,
                 dolor_abdominal,
                 hambre_nocturna,
+                antojos,
+                signos_biliares,
+                deshidratacion,
                 observaciones_paciente,
             } = req.body;
 
@@ -450,6 +471,9 @@ export default class PortalPacientesController {
                 constipacion || "",
                 dolor_abdominal || "",
                 hambre_nocturna || "",
+                antojos || "",
+                Boolean(signos_biliares),
+                Boolean(deshidratacion),
                 observaciones_paciente || ""
             );
 
@@ -466,6 +490,9 @@ export default class PortalPacientesController {
                 constipacion,
                 dolor_abdominal,
                 hambre_nocturna,
+                antojos,
+                signos_biliares,
+                deshidratacion,
             });
             const checkinAlertReasons = getCheckinAlertReasons({
                 adherencia_tratamiento,
@@ -476,6 +503,9 @@ export default class PortalPacientesController {
                 constipacion,
                 dolor_abdominal,
                 hambre_nocturna,
+                antojos,
+                signos_biliares,
+                deshidratacion,
             });
 
             if (checkinAlertReasons.length > 0) {
